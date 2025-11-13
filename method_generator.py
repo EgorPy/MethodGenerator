@@ -171,13 +171,100 @@ class AutoDB:
         if params:
             logger.debug(f"With parameters: {params}")
 
+        sql_lower = sql.lower()
+
+        # ------------------------------
+        # 1. Detect table names
+        # ------------------------------
+        tables = set()
+
+        # SELECT ... FROM table
+        m = re.findall(r"from\s+(\w+)", sql_lower)
+        tables.update(m)
+
+        # JOIN table
+        m = re.findall(r"join\s+(\w+)", sql_lower)
+        tables.update(m)
+
+        # INSERT INTO table
+        m = re.findall(r"insert\s+into\s+(\w+)", sql_lower)
+        tables.update(m)
+
+        # UPDATE table
+        m = re.findall(r"update\s+(\w+)", sql_lower)
+        tables.update(m)
+
+        # DELETE FROM table
+        m = re.findall(r"delete\s+from\s+(\w+)", sql_lower)
+        tables.update(m)
+
+        # ------------------------------
+        # 2. Ensure tables exist
+        # ------------------------------
+        for table in tables:
+            with self.connection:
+                self.cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name = ?", (table,)
+                )
+                if not self.cursor.fetchone():
+                    logger.warning(f"[execute] Table '{table}' does not exist. Creating...")
+                    self._create_table(table)
+
+        # ------------------------------
+        # 3. Detect columns from SELECT/WHERE
+        # ------------------------------
+        for table in tables:
+            self.cursor.execute(f"PRAGMA table_info({table})")
+            existing_cols = {row[1] for row in self.cursor.fetchall()}
+
+            # SELECT column1, column2 FROM table
+            m = re.search(r"select\s+(.*?)\s+from", sql_lower)
+            if m:
+                raw = m.group(1)
+                if raw.strip() != "*" and "(" not in raw:
+                    cols = [c.strip() for c in raw.split(",")]
+                    for col in cols:
+                        if col not in existing_cols:
+                            logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
+                            self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
+                            existing_cols.add(col)
+
+            # WHERE column = ?
+            m = re.findall(r"where\s+(\w+)\s*=", sql_lower)
+            for col in m:
+                if col not in existing_cols:
+                    logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
+                    self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
+                    existing_cols.add(col)
+
+            # UPDATE table SET column = ...
+            m = re.findall(r"set\s+(\w+)\s*=", sql_lower)
+            for col in m:
+                if col not in existing_cols:
+                    logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
+                    self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
+                    existing_cols.add(col)
+
+            # INSERT INTO table (col1, col2, ...)
+            m = re.search(r"insert\s+into\s+\w+\s*\((.*?)\)", sql_lower)
+            if m:
+                cols = [c.strip() for c in m.group(1).split(",")]
+                for col in cols:
+                    if col not in existing_cols:
+                        logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
+                        self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
+                        existing_cols.add(col)
+
+        # ------------------------------
+        # 4. Run actual query
+        # ------------------------------
         with self.connection:
             if params:
                 self.cursor.execute(sql, params)
             else:
                 self.cursor.execute(sql)
 
-            if sql.strip().lower().startswith("select"):
+            if sql_lower.strip().startswith("select"):
                 result = self.cursor.fetchall()
                 logger.info(f"Custom SQL returned {len(result)} rows")
                 return result
