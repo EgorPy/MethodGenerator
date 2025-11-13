@@ -2,4 +2,4 @@ from method_generator import AutoDB
 
 db = AutoDB()
 
-db.get_image_by_id(123)
+print(db.get_user_image_by_user_id(123))

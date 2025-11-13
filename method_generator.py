@@ -4,85 +4,151 @@ import sqlite3
 import re
 
 
+def _guess_table_from_name(name):
+    """ Guesses table name """
+
+    match = re.match(r"get_(\w+)_by_", name)
+    if match:
+        table = match.group(1)
+        if not table.endswith("s"):
+            table += "s"
+        return table
+    return "unknown"
+
+
 class AutoDB:
     """ Database with auto generated methods """
 
-    operation_keywords = {"get": "get", "set": "set", "update": "update", "delete": "delete"}
-    status_keywords = {"uploaded": "uploaded", "pending": "pending", "processing": "processing", "waiting": "waiting",
-                       "done": "done", "error": "error"}
-    query_keywords = {"by": "by", "with": "with"}
+    OPERATION_KEYWORDS = {"get", "set", "update", "delete"}
+    STATUS_KEYWORDS = {"uploaded", "pending", "processing", "waiting", "done", "error"}
+    QUERY_KEYWORDS = {"with", "by"}
 
     def __init__(self, path="database.db"):
-        self.conn = sqlite3.connect(path)
-        self.cur = self.conn.cursor()
+        self.connection = sqlite3.connect(path)
+        self.cursor = self.connection.cursor()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         """ Create method based on its name """
 
+        # check if the name suits one of those formats
+        for parser in (self._parse_get_with_status_table,
+                       self._parse_get_by_column,
+                       self._parse_get_simple_table):
+            method = parser(name)
+            if method:
+                return method
+        raise AttributeError(f"Unknown method format: {name}")
+
+    # ---------------- Parsers ----------------
+    def _parse_get_with_status_table(self, name: str):
         # get_{column}_with_{status}_{table}()
-        # get_{column}_and_{column}_with_{status}_{table}()
+
+        match = re.match(r"^(get|set|update|delete)_(.+)_with_(\w+)_(\w+)$", name)
+        if not match:
+            return None
+
+        operation, columns_part, status, table = match.groups()
+        if operation not in self.OPERATION_KEYWORDS or status not in self.STATUS_KEYWORDS:
+            return None
+
+        columns = columns_part.split("_and_")
+        placeholders = ", ".join(columns)
+
+        sql_query = f"SELECT {placeholders} FROM {table} WHERE status = {status}"
+        print("Generated SQL query:")
+        print(sql_query)
+
+        def method():
+            """ Returns column(s) with specific status """
+
+            self._ensure_table_and_columns(table, columns)
+            self.cursor.execute(f"SELECT {placeholders} FROM {table} WHERE status = ?", (status,))
+            return self.cursor.fetchall()
+
+        return method
+
+    def _parse_get_by_column(self, name):
         # get_{column}_by_{column}()
 
-        # check method name validity
-        if name.find("_") == -1:
-            raise AttributeError("Method name is invalid")
+        match = re.match(r"^(get|set|update|delete)_(\w+)_by_(\w+)$", name)
+        if not match:
+            return None
 
-        # searching for operation keywords first
-        operation_index = name.find("_")
-        operation = name[:operation_index]
-        if operation not in self.operation_keywords:
-            raise AttributeError("Specified operation does not exist")
+        operation, column, by_column = match.groups()
+        if operation not in self.OPERATION_KEYWORDS:
+            return None
 
-        status_index = name.find("_", operation_index + 1)
-        status = name[operation_index + 1:status_index]
+        table = _guess_table_from_name(name)
 
-        if status not in self.status_keywords:
-            # status is one of the table columns
-            column = status
-            status = ""
+        sql_query = f"SELECT {column} FROM {table} WHERE {by_column} = ?"
+        print("Generated SQL query:")
+        print(sql_query)
 
-            query_word_index = name.find("_", status_index + 1)
-            query_word = name[status_index + 1:query_word_index]
+        def method(value):
+            """ Returns column selected by another column """
 
-            if query_word not in self.query_keywords:
-                # query word is a continuation of column name
-                column = column + "_" + query_word
-                query_word = ""
-                print(column)
-            else:
-                if query_word == self.query_keywords["by"]:
-                    pass
-                elif query_word == self.query_keywords["with"]:
-                    pass
+            self._ensure_table_and_columns(table, [column, by_column])
+            self.cursor.execute(f"SELECT {column} FROM {table} WHERE {by_column} = ?", (value,))
+            return self.cursor.fetchall()
 
-        # uploaded
-        if status == self.status_keywords["uploaded"]:
-            pass
-        # pending
-        elif status == self.status_keywords["pending"]:
-            pass
-        # processing
-        elif status == self.status_keywords["processing"]:
-            pass
-        # waiting
-        elif status == self.status_keywords["waiting"]:
-            pass
-        # done
-        elif status == self.status_keywords["done"]:
-            pass
-        # error
-        elif status == self.status_keywords["error"]:
-            pass
+        return method
 
-        # get
-        if operation == self.operation_keywords["get"]:
-            return  # return get method with args if they exist
-        # set
-        elif operation == self.operation_keywords["set"]:
-            pass
-        # update
-        elif operation == self.operation_keywords["update"]:
-            pass
-        # delete
-        elif operation == self.operation_keywords["delete"]:
-            pass
+    def _parse_get_simple_table(self, name):
+        """
+        get_{table}()
+        selects *
+        """
+
+        match = re.match(r"^(get|set|update|delete)_(\w+)$", name)
+        if not match:
+            return None
+
+        operation, table = match.groups()
+        if operation not in self.OPERATION_KEYWORDS:
+            return None
+
+        sql_query = f"SELECT * FROM {table}"
+        print("Generated SQL query:")
+        print(sql_query)
+
+        def method():
+            """ Returns every column from the table """
+
+            self._ensure_table_and_columns(table, [])
+            self.cursor.execute(f"SELECT * FROM {table}")
+            return self.cursor.fetchall()
+
+        return method
+
+    # ---------------- Utils ----------------
+    def _ensure_table_and_columns(self, table, columns):
+        """ Checks if tables and columns exist and creates them if not """
+
+        with self.connection:
+            self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name = ?", (table,))
+            if not self.cursor.fetchone():
+                print(f"Table {table} does not exist")
+                self._create_table(table)
+
+            self.cursor.execute(f"PRAGMA table_info({table})")
+            existing = {row[1] for row in self.cursor.fetchall()}
+            for column in columns:
+                if column not in existing:
+                    print(f"Column {column} does not exist")
+                    print(f"Creating column {column}:")
+                    sql_query = f"ALTER TABLE {table} ADD COLUMN {column} TEXT"
+                    print(sql_query)
+                    self.cursor.execute(sql_query)
+
+    def _create_table(self, table):
+        """ Creates table """
+
+        print(f"Creating table {table}:")
+
+        sql_query = f"""CREATE TABLE {table} (
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+)"""
+        print(sql_query)
+
+        with self.connection:
+            self.cursor.execute(sql_query)
