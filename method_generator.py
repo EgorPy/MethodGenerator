@@ -7,6 +7,11 @@ import re
 class AutoDB:
     """ Database with auto generated methods """
 
+    operation_keywords = {"get": "get", "set": "set", "update": "update", "delete": "delete"}
+    status_keywords = {"uploaded": "uploaded", "pending": "pending", "processing": "processing", "waiting": "waiting",
+                       "done": "done", "error": "error"}
+    query_keywords = {"by": "by", "with": "with"}
+
     def __init__(self, path="database.db"):
         self.conn = sqlite3.connect(path)
         self.cur = self.conn.cursor()
@@ -14,46 +19,70 @@ class AutoDB:
     def __getattr__(self, name):
         """ Create method based on its name """
 
-        # method name pattern: get_{status}_{table}_{column}()
+        # get_{column}_with_{status}_{table}()
+        # get_{column}_and_{column}_with_{status}_{table}()
+        # get_{column}_by_{column}()
 
-        match = re.match(r"get_(\w+)_(\w+)_(\w+)", name)
-        if not match:
-            raise AttributeError(f"Unknown method: {name}")
-        status, table, column = match.groups()
+        # check method name validity
+        if name.find("_") == -1:
+            raise AttributeError("Method name is invalid")
 
-        def method():
-            """ Function to be returned as created method """
+        # searching for operation keywords first
+        operation_index = name.find("_")
+        operation = name[:operation_index]
+        if operation not in self.operation_keywords:
+            raise AttributeError("Specified operation does not exist")
 
-            # Check if table exists
-            self.cur.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,)
-            )
-            table_exists = self.cur.fetchone()
+        status_index = name.find("_", operation_index + 1)
+        status = name[operation_index + 1:status_index]
 
-            if not table_exists:
-                print(f"Requested table {table} does not exist")
-                print(f"Creating table {table}")
+        if status not in self.status_keywords:
+            # status is one of the table columns
+            column = status
+            status = ""
 
-                self.cur.execute(f"""
-                    CREATE TABLE {table} (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        status TEXT
-                    )
-                """)
-                self.conn.commit()
+            query_word_index = name.find("_", status_index + 1)
+            query_word = name[status_index + 1:query_word_index]
 
-            # Check if column exists
-            self.cur.execute(f"PRAGMA table_info({table})")
-            existing_columns = {row[1] for row in self.cur.fetchall()}
-            if column not in existing_columns:
-                print(f"Requested column {column} does not exist")
-                print(f"Creating column {column}")
+            if query_word not in self.query_keywords:
+                # query word is a continuation of column name
+                column = column + "_" + query_word
+                query_word = ""
+                print(column)
+            else:
+                if query_word == self.query_keywords["by"]:
+                    pass
+                elif query_word == self.query_keywords["with"]:
+                    pass
 
-                self.cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} TEXT")
-                self.conn.commit()
+        # uploaded
+        if status == self.status_keywords["uploaded"]:
+            pass
+        # pending
+        elif status == self.status_keywords["pending"]:
+            pass
+        # processing
+        elif status == self.status_keywords["processing"]:
+            pass
+        # waiting
+        elif status == self.status_keywords["waiting"]:
+            pass
+        # done
+        elif status == self.status_keywords["done"]:
+            pass
+        # error
+        elif status == self.status_keywords["error"]:
+            pass
 
-            # Running the query
-            self.cur.execute(f"SELECT {column} FROM {table} WHERE status=?", (status,))
-            return self.cur.fetchall()
-
-        return method
+        # get
+        if operation == self.operation_keywords["get"]:
+            return  # return get method with args if they exist
+        # set
+        elif operation == self.operation_keywords["set"]:
+            pass
+        # update
+        elif operation == self.operation_keywords["update"]:
+            pass
+        # delete
+        elif operation == self.operation_keywords["delete"]:
+            pass
