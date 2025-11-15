@@ -41,7 +41,7 @@ class AutoDB:
     STATUS_KEYWORDS = {"uploaded", "pending", "processing", "waiting", "done", "error"}
     QUERY_KEYWORDS = {"with", "by"}
 
-    def __init__(self, path="database.db"):
+    def __init__(self, path="../database.db"):
         self.connection = sqlite3.connect(path)
         self.cursor = self.connection.cursor()
         logger.debug(f"Connected to database: {path}")
