@@ -233,39 +233,59 @@ body {
 /* Секция всех сервисов */
 .all-services {
     padding: 8rem 0;
-    background: #fafafa;
+    background: linear-gradient(135deg, #000000 0%, #2d2d2d 100%);
     position: relative;
+    color: white;
+}
+
+.all-services::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 30% 70%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 30%, rgba(255, 119, 198, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(120, 219, 255, 0.05) 0%, transparent 50%);
+}
+
+.all-services .container {
+    position: relative;
+    z-index: 2;
 }
 
 .all-services h2 {
     text-align: center;
     font-size: clamp(2.5rem, 5vw, 3.5rem);
     margin-bottom: 4rem;
-    color: #1a1a1a;
+    color: #ffffff;
     font-weight: 700;
     letter-spacing: -0.02em;
 }
 
 .all-services .service-card {
-    background: #ffffff;
-    border: 1px solid #f0f0f0;
-    color: #1a1a1a;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .all-services .service-card h3 {
-    color: #1a1a1a;
+    color: #ffffff;
 }
 
 .all-services .service-card p {
-    color: #666;
+    color: rgba(255, 255, 255, 0.8);
     opacity: 1;
 }
 
 .all-services .service-card:hover {
-    background: #ffffff;
-    border-color: #667eea;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
     transform: translateY(-5px);
 }
 
