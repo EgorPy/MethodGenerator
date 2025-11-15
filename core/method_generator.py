@@ -1,22 +1,29 @@
 """ Database with auto generated methods """
 
-from core.logger import logger
+from logger import logger
 import inspect
 import sqlite3
 import re
 import os
 
 
-def _guess_table_from_name(name: str) -> str:
-    """ Guesses table name from method name like get_image_by_id -> images """
+def _guess_table_from_method(name: str) -> str:
+    """ Guesses table name from method name like get_image_by_id or set_image_by_user_id -> images """
 
-    match = re.match(r"get_(\w+)_by_", name)
+    match = re.match(r"(?:get|set|update|delete)_(\w+)_by_", name)
     if match:
         table = match.group(1)
         if not table.endswith("s"):
             table += "s"
         return table
-    raise AttributeError("Cannot guess table name. Incorrect method name")
+
+    match = re.match(r"(?:get|set|update|delete)_(\w+)$", name)
+    if match:
+        table = match.group(1)
+        if not table.endswith("s"):
+            table += "s"
+        return table
+    raise AttributeError(f"Cannot guess table name. Incorrect method name: {name}")
 
 
 def _log_call_context(method_name: str):
@@ -43,20 +50,33 @@ class AutoDB:
 
     def __init__(self, path="../database.db"):
         self.connection = sqlite3.connect(path)
+        self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
         logger.debug(f"Connected to database: {path}")
 
     def __getattr__(self, name: str):
         """ Dynamically create method based on its name """
 
-        for parser in (
-                self._parse_get_with_status_table,
-                self._parse_get_by_column,
-                self._parse_get_simple_table
-        ):
-            method = parser(name)
-            if method:
-                return method
+        if name.startswith("set_"):
+            for parser in (
+                    self._parse_set_status_method,
+                    self._parse_set_with_status_table,
+                    self._parse_set_by_two_columns,
+                    self._parse_set_by_column,
+            ):
+                method = parser(name)
+                if method:
+                    return method
+
+        if name.startswith("get_"):
+            for parser in (
+                    self._parse_get_with_status_table,
+                    self._parse_get_by_column,
+                    self._parse_get_simple_table
+            ):
+                method = parser(name)
+                if method:
+                    return method
 
         raise AttributeError(f"Unknown method format: {name}")
 
@@ -75,6 +95,7 @@ class AutoDB:
         columns = columns_part.split("_and_")
         placeholders = ", ".join(columns)
         query = f"SELECT {placeholders} FROM {table} WHERE status = ?"
+        _log_call_context(name)
         logger.debug(f"Prepared SQL query: {query} | Status: {status}")
 
         def method():
@@ -87,7 +108,7 @@ class AutoDB:
                 self.cursor.execute(query, (status,))
                 result = self.cursor.fetchall()
             logger.info(f"Returned {len(result)} rows for columns: {columns}")
-            return result
+            return [dict(row) for row in result]
 
         return method
 
@@ -102,8 +123,9 @@ class AutoDB:
         if operation not in self.OPERATION_KEYWORDS:
             return None
 
-        table = _guess_table_from_name(name)
+        table = _guess_table_from_method(name)
         query = f"SELECT {column} FROM {table} WHERE {by_column} = ?"
+        _log_call_context(name)
         logger.debug(f"Prepared SQL query: {query}")
 
         def method(value):
@@ -116,7 +138,7 @@ class AutoDB:
                 self.cursor.execute(query, (value,))
                 result = self.cursor.fetchall()
             logger.info(f"Returned {len(result)} rows for column: {column}")
-            return result
+            return [dict(row) for row in result]
 
         return method
 
@@ -132,6 +154,7 @@ class AutoDB:
             return None
 
         query = f"SELECT * FROM {table}"
+        _log_call_context(name)
         logger.debug(f"Prepared SQL query: {query}")
 
         def method():
@@ -145,7 +168,146 @@ class AutoDB:
                 self.cursor.execute(f"PRAGMA table_info({table})")
                 columns = [row[1] for row in self.cursor.fetchall()]
             logger.info(f"Returned {len(result)} rows with columns: {columns}")
-            return result
+            return [dict(row) for row in result]
+
+        return method
+
+    def _parse_set_with_status_table(self, name: str):
+        """ set_{column}_with_{status}_{table}() or set_{column}_and_{column}_with_{status}_{table}() """
+
+        match = re.match(r"^set_(.+)_with_(\w+)_(\w+)$", name)
+        if not match:
+            return None
+
+        columns_part, status, table = match.groups()
+        columns = columns_part.split("_and_")
+        placeholders = ", ".join([f"{col}=?" for col in columns])
+        query = f"UPDATE {table} SET {placeholders} WHERE status = ?"
+        _log_call_context(name)
+        logger.debug(f"Prepared SQL SET query: {query} | Status: {status}")
+
+        def method(*values):
+            """ Sets columns with status """
+
+            _log_call_context(name)
+            if len(values) != len(columns):
+                raise ValueError(f"Expected {len(columns)} values, got {len(values)}")
+            self._ensure_table_and_columns(table, columns + ["status"])
+            with self.connection:
+                self.cursor.execute(query, (*values, status))
+                self.connection.commit()
+                self.cursor.execute(f"SELECT * FROM {table} WHERE status = ?", (status,))
+                rows = self.cursor.fetchall()
+                self.cursor.execute(f"PRAGMA table_info({table})")
+                col_names = [row[1] for row in self.cursor.fetchall()]
+            return [dict(zip(col_names, row)) for row in rows]
+
+        return method
+
+    def _parse_set_by_two_columns(self, name: str):
+        """ set_{column}_by_{column}_and_{column}(value, filter1, filter2) """
+
+        match = re.match(r"^set_(\w+)_by_(\w+)_and_(\w+)$", name)
+        if not match:
+            return None
+        column, filter1, filter2 = match.groups()
+        table = _guess_table_from_method(name)
+        query = f"UPDATE {table} SET {column} = ? WHERE {filter1} = ? AND {filter2}=?"
+        _log_call_context(name)
+        logger.debug(f"Prepared SQL query: {query}")
+
+        def method(value_to_set, filter1_value, filter2_value):
+            """ Sets columns with two filters """
+
+            _log_call_context(name)
+            self._ensure_table_and_columns(table, [column, filter1, filter2])
+            with self.connection:
+                self.cursor.execute(query, (value_to_set, filter1_value, filter2_value))
+                self.connection.commit()
+                self.cursor.execute(f"SELECT * FROM {table} WHERE {filter1}=? AND {filter2}=?", (filter1_value, filter2_value))
+                rows = self.cursor.fetchall()
+                self.cursor.execute(f"PRAGMA table_info({table})")
+                columns = [row[1] for row in self.cursor.fetchall()]
+                return [dict(zip(columns, row)) for row in rows]
+
+        return method
+
+    def _parse_set_by_column(self, name: str):
+        """ set_{column}_by_{column}(value, filter) """
+
+        match = re.match(r"^set_(\w+)_by_(\w+)$", name)
+        if not match:
+            return None
+        column, by_column = match.groups()
+
+        table = _guess_table_from_method(name)
+
+        if column.endswith("_status"):
+            column = column.removesuffix("_status")
+
+        if by_column.endswith("_status"):
+            by_column = by_column.removesuffix("_status")
+
+        if table.endswith("_status"):
+            table = table.removesuffix("_status")
+
+            if not table.endswith("s"):
+                table += "s"
+            query = f"UPDATE {table} SET status=? WHERE {by_column}=?"
+        else:
+            if not table.endswith("s"):
+                table += "s"
+            query = f"UPDATE {table} SET {column}=? WHERE {by_column}=?"
+
+        _log_call_context(name)
+        logger.debug(f"Prepared SQL query: {query}")
+
+        def method(value_to_set, filter_value):
+            """ Sets columns with filter """
+
+            _log_call_context(name)
+            self._ensure_table_and_columns(table, [column, by_column, "status"])
+            with self.connection:
+                self.cursor.execute(query, (value_to_set, filter_value))
+                self.connection.commit()
+
+                self.cursor.execute(f"SELECT * FROM {table} WHERE {by_column}=?", (filter_value,))
+                rows = self.cursor.fetchall()
+                self.cursor.execute(f"PRAGMA table_info({table})")
+                columns = [row[1] for row in self.cursor.fetchall()]
+                return [dict(zip(columns, row)) for row in rows]
+
+        return method
+
+    def _parse_set_status_method(self, name: str):
+        """ Parses methods like set_{table}_status(arg1, status) """
+
+        match = re.fullmatch(r"set_(\w+)_status", name)
+
+        if not match:
+            return None
+
+        table = match.group(1)
+        if not table.endswith("s"):
+            table += "s"
+
+        query = f"UPDATE {table} SET status=? WHERE id=?"
+        _log_call_context(name)
+        logger.debug(f"Prepared SQL query: {query}")
+
+        def method(id_value, status_value):
+            """ Set status method """
+
+            _log_call_context(name)
+            self._ensure_table_and_columns(table, ["status"])
+            with self.connection:
+                self.cursor.execute(query, (status_value, id_value))
+                self.connection.commit()
+                self.cursor.execute(f"SELECT * FROM {table} WHERE id=?", (id_value,))
+                rows = self.cursor.fetchall()
+                self.cursor.execute(f"PRAGMA table_info({table})")
+                columns = [row[1] for row in self.cursor.fetchall()]
+                return [dict(zip(columns, row)) for row in rows]
 
         return method
 
@@ -280,6 +442,6 @@ class AutoDB:
             if sql_lower.strip().startswith("select"):
                 result = self.cursor.fetchall()
                 logger.info(f"Custom SQL returned {len(result)} rows")
-                return result
+                return [dict(row) for row in result]
             else:
                 logger.info("Custom SQL executed successfully")

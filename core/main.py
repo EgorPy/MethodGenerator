@@ -3,7 +3,6 @@
 import asyncio
 from core.logger import logger
 from core.service_loader import poll_tasks
-
 from service_definitions.registry import TASKS
 
 

@@ -39,7 +39,7 @@ def setup_logger():
     logger.setLevel(logging.DEBUG)
 
     # IMPORTANT: prevent adding handlers twice
-    if logger.handlers:
+    if logger.hasHandlers():
         return logger
 
     handler = logging.StreamHandler(sys.stdout)

@@ -1,7 +1,5 @@
 """ Task class """
 
-from logger import logger
-
 
 class Task:
     """ Generic task """
@@ -14,7 +12,13 @@ class Task:
 
         raise NotImplementedError
 
-    async def handle(self, payload):
+    def set_status(self, payload, status: str):
+        pass
+
+    def save_result(self, payload, result):
+        pass
+
+    async def process(self, payload):
         """ Override """
 
         raise NotImplementedError
