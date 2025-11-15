@@ -1,15 +1,10 @@
 """ Database with auto generated methods """
 
+from core.logger import logger
+import inspect
 import sqlite3
-import logging
 import re
-
-logger = logging.getLogger("AutoDB")
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-formatter = logging.Formatter("[%(levelname)s] %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+import os
 
 
 def _guess_table_from_name(name: str) -> str:
@@ -21,11 +16,26 @@ def _guess_table_from_name(name: str) -> str:
         if not table.endswith("s"):
             table += "s"
         return table
-    return "unknown"
+    raise AttributeError("Cannot guess table name. Incorrect method name")
+
+
+def _log_call_context(method_name: str):
+    """ Log method name, line and file """
+
+    frame = inspect.stack()[2]  # calling method
+    filename = os.path.basename(frame.filename)
+    lineno = frame.lineno
+    func = frame.function
+
+    logger.debug(f"Generated method '{method_name}' called from {filename}:{lineno} in {func}()")
 
 
 class AutoDB:
-    """ Database with auto-generated methods and logging """
+    """
+    Database with auto-generated methods and logging
+    Method-Driven Data Modeling (MDDM) or
+    Code-Driven Data Definition (CDDD)
+    """
 
     OPERATION_KEYWORDS = {"get", "set", "update", "delete"}
     STATUS_KEYWORDS = {"uploaded", "pending", "processing", "waiting", "done", "error"}
@@ -70,7 +80,8 @@ class AutoDB:
         def method():
             """ Returns column(s) with specific status """
 
-            self._ensure_table_and_columns(table, columns)
+            _log_call_context(name)
+            self._ensure_table_and_columns(table, columns + ["status"])
             logger.debug(f"Executing query with status={status}")
             with self.connection:
                 self.cursor.execute(query, (status,))
@@ -98,6 +109,7 @@ class AutoDB:
         def method(value):
             """ Returns column selected by another column """
 
+            _log_call_context(name)
             self._ensure_table_and_columns(table, [column, by_column])
             with self.connection:
                 logger.debug(f"Executing query with {by_column}={value}")
@@ -125,6 +137,7 @@ class AutoDB:
         def method():
             """ Returns all columns from the table """
 
+            _log_call_context(name)
             self._ensure_table_and_columns(table, [])
             with self.connection:
                 self.cursor.execute(query)

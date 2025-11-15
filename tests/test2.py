@@ -1,4 +1,4 @@
-from method_generator import AutoDB
+from core.method_generator import AutoDB
 
 db = AutoDB()
 
