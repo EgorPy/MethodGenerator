@@ -558,14 +558,14 @@ a.logo:hover {
 
 /* Стили для профиля */
 .profile-container {
-    max-width: 800px;
+    max-width: 80vw;
     margin: 0 auto;
     padding: 2rem;
 }
 
 .profile-layout {
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: 1fr 1fr;
     gap: 3rem;
     align-items: start;
     margin-top: 2rem;
