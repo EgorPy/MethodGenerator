@@ -1,20 +1,17 @@
 """ Execute this file to run frontend """
 
-from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-import core.config as config
+from fastapi import FastAPI, Request
 from core.logger import logger
+import core.config as config
+from pathlib import Path
 import webbrowser
 import threading
 import uvicorn
-from pathlib import Path
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-pages_dir = Path("pages")
-templates = Jinja2Templates(directory=pages_dir)
 
 
 def scan_and_register_pages():
@@ -64,14 +61,20 @@ async def page_404(request, __):
 def start_server():
     """ Starts the server """
 
-    logger.info(f"Server started at http://127.0.0.1:{config.FRONTEND_PORT}")
-    uvicorn.run(app, host="127.0.0.1", port=config.FRONTEND_PORT, reload=False)
+    logger.info(f"Frontend server started at http://{config.DOMAIN}:{config.FRONTEND_PORT}")
+    uvicorn.run(app, host=config.DOMAIN, port=config.FRONTEND_PORT, reload=False)
 
 
 def run():
     """ Starts the server """
 
-    logger.info("Scanning for pages...")
+    global app, pages_dir, templates
+
+    app.mount("/static", StaticFiles(directory="../frontend/web/static"), name="static")
+    pages_dir = Path("../frontend/web/pages")
+    templates = Jinja2Templates(directory=pages_dir)
+
+    # logger.info("Scanning for pages...")
     registered_pages = scan_and_register_pages()
 
     if not registered_pages:
@@ -82,7 +85,7 @@ def run():
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
 
-    url = f"http://127.0.0.1:{config.FRONTEND_PORT}"
+    url = f"http://{config.DOMAIN}:{config.FRONTEND_PORT}"
     logger.info(f"Opening browser: {url}")
     webbrowser.open(url)
 
