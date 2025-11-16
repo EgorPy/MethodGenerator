@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from typing_extensions import Annotated
 from method_generator import AutoDB
 from typing import Optional
+from logger import logger
 from utils import *
 import threading
 import logging
@@ -130,6 +131,7 @@ app = FastAPI()
 def start_server():
     """ Starts the server """
 
+    logger.info(f"BACKEND server started at http://{config.DOMAIN}:{config.BACKEND_PORT}")
     uvicorn.run(app, host=config.DOMAIN, port=config.BACKEND_PORT, reload=False)
 
 

@@ -1,14 +1,13 @@
 """ Cross-platform launcher for backend, frontend and core.
     Linux  -> uses nohup to run processes in background (.out logs)
-    Windows -> uses subprocess.Popen with log files
+    Windows -> opens separate console windows, no log files
 """
 
 from logger import logger
-from pathlib import Path
 import subprocess
+import platform
 import sys
 import os
-import platform
 
 PYTHON = sys.executable
 
@@ -33,29 +32,13 @@ def run_linux():
     logger.info("Logs: *.out files in current directory.")
 
 
-def ensure_log_dir():
-    """ Logs """
+def start_windows(script):
+    """ Starts a process in a new console and shows output in real time """
 
-    logs_path = Path("logs")
-    logs_path.mkdir(exist_ok=True)
-    return logs_path
-
-
-def start_windows(script, logfile):
-    """ Starts a process in background and redirects logs to a file """
-
-    logs_dir = ensure_log_dir()
-    log_path = logs_dir / logfile
-    log_file = open(log_path, "a", encoding="utf-8")
-
-    logger.info(f"Starting {script} -> logs/{logfile}")
+    logger.info(f"Starting {script} in new console...")
 
     subprocess.Popen(
-        [PYTHON, script],
-        stdout=log_file,
-        stderr=log_file,
-        stdin=subprocess.DEVNULL,
-        close_fds=True,
+        [PYTHON, "-u", script],
         creationflags=subprocess.CREATE_NEW_CONSOLE
     )
 
@@ -65,9 +48,9 @@ def run_windows():
 
     logger.info("Detected Windows. Starting services in new consoles...")
 
-    start_windows("backend_main.py", "backend.log")
-    start_windows("frontend_main.py", "frontend.log")
-    start_windows("core_main.py", "core.log")
+    start_windows("backend_main.py")
+    start_windows("frontend_main.py")
+    start_windows("core_main.py")
 
     logger.info("All Windows services launched.")
 

@@ -61,7 +61,7 @@ async def page_404(request, __):
 def start_server():
     """ Starts the server """
 
-    logger.info(f"Frontend server started at http://{config.DOMAIN}:{config.FRONTEND_PORT}")
+    logger.info(f"FRONTEND server started at http://{config.DOMAIN}:{config.FRONTEND_PORT}")
     uvicorn.run(app, host=config.DOMAIN, port=config.FRONTEND_PORT, reload=False)
 
 

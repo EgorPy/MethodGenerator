@@ -10,7 +10,7 @@ import asyncio
 async def run():
     """ Core startup """
 
-    logger.info("=== Core system starting ===")
+    logger.info("=== Core system started ===")
 
     generate_frontend_config()
 
