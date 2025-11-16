@@ -3,56 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Hub - Все AI инструменты для работы с изображениями</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <title>Hub - Все ИИ инструменты для работы с изображениями</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<header class="header">
-    <nav class="nav">
-        <div class="nav-container">
-            <div class="logo">AI Hub</div>
-            <button class="btn btn-create-account">Создать аккаунт</button>
-        </div>
-    </nav>
-</header>
+{% include "header.html" %}
 
 <main class="main">
-    <!-- Hero секция -->
     <section class="hero">
         <div class="container">
             <h1 class="hero-title">
                 <span class="gradient-text">AI Hub</span> -
-                Все AI инструменты в одном месте
+                Все ИИ инструменты в одном месте
             </h1>
             <p class="hero-subtitle">Преобразите ваши изображения с помощью искусственного интеллекта</p>
 
-            <!-- Основные сервисы - самые популярные -->
             <div class="services-grid">
                 <div class="service-card primary">
                     <div class="service-icon">🎨</div>
                     <h3>Генерация изображений</h3>
                     <p>Создавайте уникальные изображения по описанию</p>
-                    <button class="btn btn-service">Попробовать</button>
+                    <button onclick=login("image") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card primary">
                     <div class="service-icon">✨</div>
                     <h3>Улучшение качества</h3>
                     <p>Увеличивайте разрешение и улучшайте детализацию</p>
-                    <button class="btn btn-service">Попробовать</button>
+                    <button onclick=login("upscale") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card primary">
                     <div class="service-icon">🔍</div>
                     <h3>Удаление фона</h3>
                     <p>Мгновенно удаляйте фон с любой фотографии</p>
-                    <button class="btn btn-service">Попробовать</button>
+                    <button onclick=login("rembg") class="btn btn-service">Попробовать</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Все сервисы -->
     <section class="all-services">
         <div class="container">
             <h2>Все AI инструменты</h2>
@@ -61,48 +52,54 @@
                     <div class="service-icon">🎨</div>
                     <h3>Генерация изображений</h3>
                     <p>Текст в изображение по описанию</p>
+                    <button onclick=login("image") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card">
                     <div class="service-icon">🤖</div>
                     <h3>Проверка на AI</h3>
-                    <p>Определите, создано ли изображение ИИ</p>
+                    <p>Проверка, создано ли изображение ИИ</p>
+                    <button onclick=login("check") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card">
                     <div class="service-icon">✂️</div>
                     <h3>Удаление фона</h3>
-                    <p>Автоматическое удаление фона</p>
+                    <p>Качественное удаление фона</p>
+                    <button onclick=login("rembg") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card">
                     <div class="service-icon">🏞️</div>
                     <h3>Замена фона</h3>
-                    <p>Поменяйте фон на любой другой</p>
+                    <p>Замена фона изображения на любой другой</p>
+                    <button onclick=login("repbg") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card">
                     <div class="service-icon">📝</div>
                     <h3>Изображение в текст</h3>
-                    <p>Получите описание любого изображения</p>
+                    <p>Получить описание любого изображения</p>
+                    <button onclick=login("describe") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card">
                     <div class="service-icon">😊</div>
                     <h3>Замена лица</h3>
                     <p>Редактирование и замена лиц на фото</p>
+                    <button onclick=login("face") class="btn btn-service">Попробовать</button>
                 </div>
 
                 <div class="service-card">
                     <div class="service-icon">✨</div>
                     <h3>Улучшение качества</h3>
                     <p>Повышение резкости и детализации</p>
+                    <button onclick=login("upscale") class="btn btn-service">Попробовать</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- CTA секция -->
     <section class="cta-section">
         <div class="container">
             <h2>Начните использовать все инструменты</h2>

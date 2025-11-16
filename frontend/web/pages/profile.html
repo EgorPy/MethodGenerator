@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <title>Hub Профиль</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+{% include "header.html" %}
+
+<div class="form-container" style="padding: 5rem 2rem;">
+    <div class="profile-container">
+        <h1 class="title">Ваш профиль</h1>
+
+        <div class="profile-info">
+            <div class="info-item">
+                <span class="info-label">Ваш id:</span>
+                <span class="info-value">610444322</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Доступно запросов:</span>
+                <span class="info-value requests-count">1414</span>
+            </div>
+        </div>
+
+        <div class="bonus-info">
+            <p>Каждую неделю вам начисляется 3 бесплатных запроса.</p>
+        </div>
+
+        <div class="upgrade-section">
+            <h2>Как получить больше запросов</h2>
+            <ul class="upgrade-list">
+                <li>вы можете приобрести их по самым низким ценам</li>
+                <li>пригласите человека и получите за него 3 запроса на генерацию изображения</li>
+            </ul>
+        </div>
+
+        <div class="profile-actions">
+            <button class="btn btn-service">Купить запросы</button>
+            <button class="btn btn-service">Пригласить друга</button>
+            <button class="btn btn-service">История платежей</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
