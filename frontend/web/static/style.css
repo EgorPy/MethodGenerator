@@ -120,14 +120,14 @@ a.logo:hover {
 .hero-title {
     font-size: clamp(3rem, 8vw, 5.5rem);
     font-weight: 800;
-    margin-bottom: 1.5rem;
+    margin-bottom: 3.5rem;
     line-height: 1.1;
     letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
     font-size: clamp(1.25rem, 3vw, 1.5rem);
-    margin-bottom: 4rem;
+    margin-bottom: 6rem;
     opacity: 0.8;
     font-weight: 400;
     max-width: 600px;
@@ -143,6 +143,7 @@ a.logo:hover {
     background-clip: text;
     background-size: 200% 200%;
     animation: gradient-shift 4s ease infinite;
+    font-weight: 800;
 }
 
 @keyframes gradient-shift {

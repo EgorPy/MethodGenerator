@@ -13,10 +13,14 @@ class Task:
         raise NotImplementedError
 
     def set_status(self, payload, status: str):
-        pass
+        """ Override """
+
+        raise NotImplementedError
 
     def save_result(self, payload, result):
-        pass
+        """ Override """
+
+        raise NotImplementedError
 
     async def process(self, payload):
         """ Override """

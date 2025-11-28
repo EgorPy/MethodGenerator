@@ -1,4 +1,4 @@
-""" Checks for waiting requests to sent them to users """
+""" Checks for waiting requests to send them to users """
 
 import asyncio
 from core.method_generator import AutoDB

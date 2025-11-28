@@ -78,6 +78,14 @@ class AutoDB:
                 if method:
                     return method
 
+        if name.startswith("is_"):  # this means that this method should return bool return type
+            for parser in (
+                    self._parse_is_exists,
+            ):
+                method = parser(name)
+                if method:
+                    return method
+
         raise AttributeError(f"Unknown method format: {name}")
 
     # ------------------ Parsers ------------------
@@ -302,6 +310,38 @@ class AutoDB:
             self._ensure_table_and_columns(table, ["status"])
             with self.connection:
                 self.cursor.execute(query, (status_value, id_value))
+                self.connection.commit()
+                self.cursor.execute(f"SELECT * FROM {table} WHERE id=?", (id_value,))
+                rows = self.cursor.fetchall()
+                self.cursor.execute(f"PRAGMA table_info({table})")
+                columns = [row[1] for row in self.cursor.fetchall()]
+                return [dict(zip(columns, row)) for row in rows]
+
+        return method
+
+    def _parse_is_exists(self, name: str):
+        """ Parses methods like is_{table}_exists(arg1) """
+
+        match = re.fullmatch(r"is_(\w+)_exists", name)
+
+        if not match:
+            return None
+
+        table = match.group(1)
+        if not table.endswith("s"):
+            table += "s"
+
+        query = f"SELECT COUNT(*) FROM {table} WHERE id=?"
+        _log_call_context(name)
+        logger.debug(f"Prepared SQL query: {query}")
+
+        def method(id_value):
+            """ Set status method """
+
+            _log_call_context(name)
+            self._ensure_table_and_columns(table, ["id"])
+            with self.connection:
+                self.cursor.execute(query, (id_value,))
                 self.connection.commit()
                 self.cursor.execute(f"SELECT * FROM {table} WHERE id=?", (id_value,))
                 rows = self.cursor.fetchall()
