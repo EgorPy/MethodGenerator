@@ -7,6 +7,30 @@ import re
 import os
 
 
+class ConnectionManager:
+    """ Database connection manager for FastAPI """
+
+    def __init__(self, path="../database.db"):
+        self.path = path
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    def connect(self) -> sqlite3.Connection:
+        """ Method that returns connection to the database """
+
+        conn = sqlite3.connect(self.path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    async def dependency(self):  # async is important in this method because of FastAPI threadpool
+        """ Generator that yields connection to the database """
+
+        conn = self.connect()
+        try:
+            yield conn
+        finally:
+            conn.close()
+
+
 def _guess_table_from_method(name: str) -> str:
     """ Guesses table name from method name like get_image_by_id or set_image_by_user_id -> images """
 
@@ -44,15 +68,24 @@ class AutoDB:
     Code-Driven Data Definition (CDDD)
     """
 
+    # TODO: Add method caching
+    # TODO: Add saving to generated methods or pre generate all methods on the first run and then load them
+
     OPERATION_KEYWORDS = {"get", "set", "update", "delete"}
     STATUS_KEYWORDS = {"uploaded", "pending", "processing", "waiting", "done", "error"}
     QUERY_KEYWORDS = {"with", "by"}
 
-    def __init__(self, path="../database.db"):
-        self.connection = sqlite3.connect(path)
-        self.connection.row_factory = sqlite3.Row
+    def __init__(self, connection: sqlite3.Connection):
+        """
+        Initialize with existing SQLite connection
+
+        Args:
+            connection: Active SQLite connection
+        """
+
+        self.connection = connection
         self.cursor = self.connection.cursor()
-        logger.debug(f"Connected to database: {path}")
+        logger.debug("AutoDB initialized with provided connection")
 
     def __getattr__(self, name: str):
         """ Dynamically create method based on its name """
@@ -78,7 +111,7 @@ class AutoDB:
                 if method:
                     return method
 
-        if name.startswith("is_"):  # this means that this method should return bool return type
+        if name.startswith("is_"):  # this means that this method should return a bool return type
             for parser in (
                     self._parse_is_exists,
             ):
@@ -342,12 +375,11 @@ class AutoDB:
             self._ensure_table_and_columns(table, ["id"])
             with self.connection:
                 self.cursor.execute(query, (id_value,))
-                self.connection.commit()
-                self.cursor.execute(f"SELECT * FROM {table} WHERE id=?", (id_value,))
-                rows = self.cursor.fetchall()
+                result = self.cursor.fetchall()
                 self.cursor.execute(f"PRAGMA table_info({table})")
                 columns = [row[1] for row in self.cursor.fetchall()]
-                return [dict(zip(columns, row)) for row in rows]
+                logger.info(f"Returned {len(result)} rows with columns: {columns}")
+                return bool(result[0][0]) if result and result[0] else 0
 
         return method
 

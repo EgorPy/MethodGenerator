@@ -2,29 +2,33 @@
 
 from fastapi import FastAPI, Form, status, Depends, HTTPException, Cookie
 from fastapi.middleware.cors import CORSMiddleware
+from method_generator import AutoDB, ConnectionManager
 from fastapi.responses import JSONResponse
 from typing_extensions import Annotated
-from method_generator import AutoDB
 from typing import Optional
 from logger import logger
 from utils import *
 import threading
 import logging
 import uvicorn
+import sqlite3
 import config
 
 app = FastAPI()
+cm = ConnectionManager()
 
 
-async def login_user(email: str, password: str) -> Optional[str]:
+async def login_user(email: str, password: str, connection: sqlite3.Connection = Depends(cm.dependency)) -> Optional[str]:
     """ Logins user """
 
-    hashed_password = await db.get_password(email)
+    db = AutoDB(connection)
+
+    hashed_password = db.get_password(email)
     if not hashed_password or not verify_password(password, hashed_password):
         return
-    user_id = await db.get_id_by_email(email)
+    user_id = db.get_id_by_email(email)
 
-    session_id = await db.create_session(user_id)
+    session_id = db.create_session(user_id)
     return session_id
 
 
@@ -57,17 +61,20 @@ async def register(first_name: Annotated[str, Form(min_length=2, max_length=32, 
                    phone: Annotated[str, Form(min_length=4, max_length=16, pattern="^\s*\+\d+\s*$")],
                    email: Annotated[
                        str, Form(min_length=5, max_length=256, pattern="^\s*[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\s*$")],
-                   password: Annotated[str, Form(min_length=8, max_length=256, pattern="^\S+$")]):
+                   password: Annotated[str, Form(min_length=8, max_length=256, pattern="^\S+$")],
+                   connection: sqlite3.Connection = Depends(cm.dependency)):
     """ Register endpoint """
 
-    if await db.is_user_exists(email):
+    db = AutoDB(connection)
+
+    if db.is_user_exists(email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
-    await db.add_user(first_name.strip().capitalize(),
-                      last_name.strip().capitalize(),
-                      email.strip(),
-                      hash_password(password.strip()),
-                      phone.strip())
+    db.add_user(first_name.strip().capitalize(),
+                last_name.strip().capitalize(),
+                email.strip(),
+                hash_password(password.strip()),
+                phone.strip())
 
     session_id = await login_user(email, password)
     if not session_id:
@@ -86,26 +93,32 @@ async def register(first_name: Annotated[str, Form(min_length=2, max_length=32, 
     return response
 
 
-async def check_user_session(session_id: Optional[str] = Cookie(None)):
+async def check_user_session(session_id: Optional[str] = Cookie(None),
+                             connection: sqlite3.Connection = Depends(cm.dependency)):
     """ Checks validity of user session """
+
+    db = AutoDB(connection)
 
     if not session_id:
         logging.info("No session provided")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No session provided")
-    user_id = await db.get_user_by_session(session_id)
+    user_id = db.get_user_by_session(session_id)
     if not user_id:
         logging.info("Invalid or expired session")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session")
     return user_id
 
 
-async def check_user_session_for_logout(session_id: Optional[str] = Cookie(None)):
+async def check_user_session_for_logout(session_id: Optional[str] = Cookie(None),
+                                        connection: sqlite3.Connection = Depends(cm.dependency)):
     """ Checks validity of user session for logout """
+
+    db = AutoDB(connection)
 
     if not session_id:
         logging.info("No session provided")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No session provided")
-    user_id = await db.get_user_by_session(session_id)
+    user_id = db.get_user_by_session(session_id)
     if not user_id:
         logging.info("Invalid or expired session")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session")
@@ -113,11 +126,14 @@ async def check_user_session_for_logout(session_id: Optional[str] = Cookie(None)
 
 
 @app.get("/logout/")
-async def logout(session_id: str = Depends(check_user_session_for_logout)):
+async def logout(session_id: str = Depends(check_user_session_for_logout),
+                 connection: sqlite3.Connection = Depends(cm.dependency)):
     """ Logout endpoint """
 
+    db = AutoDB(connection)
+
     logging.info(session_id)
-    await db.delete_session(session_id)
+    db.delete_session(session_id)
 
 
 @app.get("/me")
@@ -136,10 +152,6 @@ def start_server():
 
 def run():
     """ Sets up the server """
-
-    global app, db
-
-    db = AutoDB()
 
     app.add_middleware(
         CORSMiddleware,
