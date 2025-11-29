@@ -23,22 +23,24 @@ async def login_user(email: str, password: str, connection: sqlite3.Connection =
 
     db = AutoDB(connection)
 
-    hashed_password = db.get_password(email)
+    hashed_password = db.get_user_password(email=email)
     if not hashed_password or not verify_password(password, hashed_password):
         return
-    user_id = db.get_id_by_email(email)
+    user_id = db.get_user_id(email=email)
 
-    session_id = db.create_session(user_id)
+    db.delete_session(user_id=user_id)
+    session_id = db.insert_session(user_id=user_id, duration=config.SESSION_DURATION)
     return session_id
 
 
 @app.post("/login/", status_code=status.HTTP_200_OK)
 async def login(email: Annotated[
     str, Form(min_length=5, max_length=256, pattern="^\s*[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\s*$")],
-                password: Annotated[str, Form(min_length=8, max_length=256, pattern="^\S+$")]):
+                password: Annotated[str, Form(min_length=8, max_length=256, pattern="^\S+$")],
+                connection=Depends(cm.dependency)):
     """ Login endpoint """
 
-    session_id = await login_user(email, password)
+    session_id = await login_user(email, password, connection)
     if not session_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
@@ -67,16 +69,16 @@ async def register(first_name: Annotated[str, Form(min_length=2, max_length=32, 
 
     db = AutoDB(connection)
 
-    if db.is_user_exists(email):
+    if db.is_user_exists(email):  # FIXME
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
-    db.add_user(first_name.strip().capitalize(),
-                last_name.strip().capitalize(),
-                email.strip(),
-                hash_password(password.strip()),
-                phone.strip())
+    db.insert_user(first_name=first_name.strip().capitalize(),
+                   last_name=last_name.strip().capitalize(),
+                   email=email.strip(),
+                   password=hash_password(password.strip()),
+                   phone=phone.strip())
 
-    session_id = await login_user(email, password)
+    session_id = await login_user(email, password, connection)
     if not session_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 

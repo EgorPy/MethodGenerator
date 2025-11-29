@@ -2,6 +2,7 @@
     Linux  -> uses nohup to run processes in background (.out logs)
     Windows -> opens separate console windows, no log files
 """
+import time
 
 from logger import logger
 import subprocess
@@ -48,9 +49,15 @@ def run_windows():
 
     logger.info("Detected Windows. Starting services in new consoles...")
 
-    start_windows("backend_main.py")
-    start_windows("frontend_main.py")
-    start_windows("core_main.py")
+    core_systems = [
+        "frontend_main.py",
+        "core_main.py",
+        "backend_main.py"
+    ]
+
+    for system in core_systems:
+        time.sleep(0.5)
+        start_windows(system)
 
     logger.info("All Windows services launched.")
 

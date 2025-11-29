@@ -31,6 +31,7 @@ document.querySelector(".contact-form").addEventListener("submit", async functio
         window.location.href = "/profile"
     } else {
         const error = await response.json()
+        errorText.style += "display: block;"
         if (response.status === 409) {
             errorText.innerHTML = "Аккаунт с таким email уже существует. <a href='/login'>Войти?</a>"
         } else if (response.status === 422) {

@@ -1,4 +1,4 @@
-""" Database with auto generated methods """
+""" Database generating methods """
 
 from logger import logger
 import inspect
@@ -34,14 +34,14 @@ class ConnectionManager:
 def _guess_table_from_method(name: str) -> str:
     """ Guesses table name from method name like get_image_by_id or set_image_by_user_id -> images """
 
-    match = re.match(r"(?:get|set|update|delete)_(\w+)_by_", name)
+    match = re.match(r"(?:get|set|insert|delete)_(\w+)_by_", name)
     if match:
         table = match.group(1)
         if not table.endswith("s"):
             table += "s"
         return table
 
-    match = re.match(r"(?:get|set|update|delete)_(\w+)$", name)
+    match = re.match(r"(?:get|set|insert|delete)_(\w+)$", name)
     if match:
         table = match.group(1)
         if not table.endswith("s"):
@@ -105,7 +105,7 @@ class AutoDB:
             for parser in (
                     self._parse_get_with_status_table,
                     self._parse_get_by_column,
-                    self._parse_get_simple_table
+                    self._parse_get_table_column,
             ):
                 method = parser(name)
                 if method:
@@ -114,6 +114,22 @@ class AutoDB:
         if name.startswith("is_"):  # this means that this method should return a bool return type
             for parser in (
                     self._parse_is_exists,
+            ):
+                method = parser(name)
+                if method:
+                    return method
+
+        if name.startswith("insert_"):
+            for parser in (
+                    self._parse_insert_row,
+            ):
+                method = parser(name)
+                if method:
+                    return method
+
+        if name.startswith("delete_"):
+            for parser in (
+                    self._parse_delete_row,
             ):
                 method = parser(name)
                 if method:
@@ -183,33 +199,40 @@ class AutoDB:
 
         return method
 
-    def _parse_get_simple_table(self, name: str):
-        """ get_{table}() -> SELECT * FROM table """
+    def _parse_get_table_column(self, name: str):
+        """ get_{table}_{column}(columns_as_keyword_arguments) """
 
-        match = re.match(r"^(get|set|update|delete)_(\w+)$", name)
+        match = re.match(r"^get_(\w+)_(\w+)$", name)
         if not match:
             return None
 
-        operation, table = match.groups()
-        if operation not in self.OPERATION_KEYWORDS:
-            return None
+        table_singular, return_column = match.groups()
 
-        query = f"SELECT * FROM {table}"
-        _log_call_context(name)
-        logger.debug(f"Prepared SQL query: {query}")
+        table = table_singular + "s"
 
-        def method():
-            """ Returns all columns from the table """
+        def method(**columns):
+            """ Returns column selected by columns """
 
             _log_call_context(name)
-            self._ensure_table_and_columns(table, [])
+
+            if not columns:
+                raise ValueError(f"{name} must be called with keyword arguments for WHERE columns")
+
+            where_columns = list(columns.keys())
+            self._ensure_table_and_columns(table, [return_column] + where_columns)
+
+            where_clause = " AND ".join(f"{col} = ?" for col in where_columns)
+            query = f"SELECT {return_column} FROM {table} WHERE {where_clause}"
+
+            values = tuple(columns[col] for col in where_columns)
+
             with self.connection:
-                self.cursor.execute(query)
-                result = self.cursor.fetchall()
-                self.cursor.execute(f"PRAGMA table_info({table})")
-                columns = [row[1] for row in self.cursor.fetchall()]
-            logger.info(f"Returned {len(result)} rows with columns: {columns}")
-            return [dict(row) for row in result]
+                self.cursor.execute(query, values)
+                rows = self.cursor.fetchall()
+
+            if not rows:
+                return None
+            return rows[0][return_column]
 
         return method
 
@@ -380,6 +403,70 @@ class AutoDB:
                 columns = [row[1] for row in self.cursor.fetchall()]
                 logger.info(f"Returned {len(result)} rows with columns: {columns}")
                 return bool(result[0][0]) if result and result[0] else 0
+
+        return method
+
+    def _parse_insert_row(self, name: str):
+        """ insert_{table_row}(columns_as_keyword_arguments) """
+
+        table = _guess_table_from_method(name)
+
+        query = "INSERT INTO {} ({}) VALUES ({})"
+
+        _log_call_context(name)
+        logger.debug(f"Prepared SQL query: {query}")
+
+        def method(**columns):
+            """ Sets columns with filter """
+
+            _log_call_context(name)
+            self._ensure_table_and_columns(table, list(columns.keys()))
+            with self.connection:
+                self.cursor.execute(
+                    query.format(
+                        table,
+                        ", ".join(columns.keys()),
+                        ", ".join(["?"] * len(columns))
+                    ),
+                    (*columns.values(),)
+                )
+                self.connection.commit()
+
+                cs = " = ? AND ".join(columns.keys())
+                cs += " = ?"
+                self.cursor.execute(f"SELECT * FROM {table} WHERE {cs}", (*columns.values(),))
+                rows = self.cursor.fetchall()
+                self.cursor.execute(f"PRAGMA table_info({table})")
+                columns = [row[1] for row in self.cursor.fetchall()]
+                return [dict(zip(columns, row)) for row in rows]
+
+        return method
+
+    def _parse_delete_row(self, name: str):
+        """ delete_{table_row}(columns_as_keyword_arguments) """
+
+        table = _guess_table_from_method(name)
+
+        query = "DELETE FROM {} WHERE {}"
+
+        _log_call_context(name)
+        logger.debug(f"Prepared SQL query: {query}")
+
+        def method(**columns):
+            """ Sets columns with filter """
+
+            _log_call_context(name)
+            self._ensure_table_and_columns(table, list(columns.keys()))
+            where_clause = " AND ".join(f"{col} = ?" for col in columns)
+            with self.connection:
+                self.cursor.execute(
+                    query.format(
+                        table,
+                        where_clause
+                    ),
+                    (*columns.values(),)
+                )
+                return self.cursor.rowcount
 
         return method
 
