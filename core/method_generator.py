@@ -387,17 +387,21 @@ class AutoDB:
         if not table.endswith("s"):
             table += "s"
 
-        query = f"SELECT COUNT(*) FROM {table} WHERE id=?"
+        query = "SELECT COUNT(*) FROM {} WHERE {}"
         _log_call_context(name)
         logger.debug(f"Prepared SQL query: {query}")
 
-        def method(id_value):
+        def method(**where_columns):
             """ Set status method """
 
             _log_call_context(name)
             self._ensure_table_and_columns(table, ["id"])
             with self.connection:
-                self.cursor.execute(query, (id_value,))
+                where_clause = " AND ".join(f"{col} = ?" for col in where_columns)
+                self.cursor.execute(query.format(
+                    table,
+                    where_clause
+                ), (*where_columns.values(),))
                 result = self.cursor.fetchall()
                 self.cursor.execute(f"PRAGMA table_info({table})")
                 columns = [row[1] for row in self.cursor.fetchall()]

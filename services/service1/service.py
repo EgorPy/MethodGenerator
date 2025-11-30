@@ -1,9 +1,9 @@
 """ Image service """
 
+from client import send_to_generator
 from core.logger import logger
 from core.task import Task
-from .db_methods import *
-from .client import send_to_generator
+from db_methods import *
 
 
 class ImageTask(Task):

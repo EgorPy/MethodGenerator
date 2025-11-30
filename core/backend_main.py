@@ -69,7 +69,7 @@ async def register(first_name: Annotated[str, Form(min_length=2, max_length=32, 
 
     db = AutoDB(connection)
 
-    if db.is_user_exists(email):  # FIXME
+    if db.is_user_exists(email=email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     db.insert_user(first_name=first_name.strip().capitalize(),
