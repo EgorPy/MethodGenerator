@@ -1,11 +1,12 @@
 """ Execute this file to run frontend """
 
+from core.config import config
+from core.logger import logger
+
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi import FastAPI, Request
-from core.logger import logger
-import core.config as config
 from pathlib import Path
 import webbrowser
 import threading
@@ -62,7 +63,7 @@ def start_server():
     """ Starts the server """
 
     logger.info(f"FRONTEND server started at http://{config.DOMAIN}:{config.FRONTEND_PORT}")
-    uvicorn.run(app, host=config.DOMAIN, port=config.FRONTEND_PORT, reload=False)
+    uvicorn.run(app, host=config.DOMAIN, port=int(config.FRONTEND_PORT), reload=False)
 
 
 def run():
@@ -70,8 +71,8 @@ def run():
 
     global app, pages_dir, templates
 
-    app.mount("/static", StaticFiles(directory="../frontend/web/static"), name="static")
-    pages_dir = Path("../frontend/web/pages")
+    app.mount("/static", StaticFiles(directory="frontend/web/static"), name="static")
+    pages_dir = Path("frontend/web/pages")
     templates = Jinja2Templates(directory=pages_dir)
 
     # logger.info("Scanning for pages...")

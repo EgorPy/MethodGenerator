@@ -1,9 +1,10 @@
 """ Run core """
 
 from config_generator import generate_frontend_config
-from service_definitions.registry import TASKS
 from service_loader import poll_tasks
+from registry import TASKS
 from logger import logger
+
 import asyncio
 import logging
 

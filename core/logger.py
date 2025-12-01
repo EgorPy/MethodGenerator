@@ -36,7 +36,7 @@ def setup_logger():
     """ Logger setup """
 
     logger = logging.getLogger("Core")
-    logger.setLevel(logging.WARNING)  # I put WARNING here to make less output in console, for hard debugging use DEBUG
+    logger.setLevel(logging.INFO)  # I put WARNING here to make less output in console, for hard debugging use DEBUG
 
     # IMPORTANT: prevent adding handlers twice
     if logger.hasHandlers():

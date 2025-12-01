@@ -1,7 +1,7 @@
 """ Generates config.js file for frontend """
 
+from config import config
 from logger import logger
-import config
 import os
 
 

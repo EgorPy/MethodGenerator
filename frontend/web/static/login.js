@@ -39,7 +39,7 @@ document.querySelector(".contact-form").addEventListener("submit", async functio
         } else if (response.status === 422) {
             errorText.innerHTML = "Некорректный формат данных."
         } else {
-            alert("Ошибка: " + response.status)
+            errorText.innerHTML = "Ошибка: " + response.status
         }
     }
 })

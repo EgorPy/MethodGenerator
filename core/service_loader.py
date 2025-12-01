@@ -2,11 +2,12 @@
 Abstract pipeline to connect and manage independent services (business logic)
 """
 
-from service_definitions.registry import TASKS
+from registry import TASKS
+from config import config
 from logger import logger
 from task import Task
+
 import asyncio
-import config
 
 
 async def process_task(task: Task, payload):
@@ -41,4 +42,4 @@ async def poll_tasks():
                 logger.info(f"Task '{task.name}' has work: {payload}")
                 asyncio.create_task(process_task(task, payload))
 
-        await asyncio.sleep(config.REQUEST_INTERVAL)
+        await asyncio.sleep(int(config.REQUEST_INTERVAL))

@@ -10,7 +10,7 @@ document.querySelector(".contact-form").addEventListener("submit", async functio
 
     const errorText = document.querySelector(".error-text")
 
-    const response = await fetch(`${BACKEND_URL}/register/`, {
+    const response = await fetch(`${BACKEND_URL}/auth/register/`, {
         method: "POST",
         headers: {
             "Accept": "application/json",
@@ -31,6 +31,7 @@ document.querySelector(".contact-form").addEventListener("submit", async functio
         window.location.href = "/profile"
     } else {
         const error = await response.json()
+        console.log(error)
         errorText.style += "display: block;"
         if (response.status === 409) {
             errorText.innerHTML = "Аккаунт с таким email уже существует. <a href='/login'>Войти?</a>"

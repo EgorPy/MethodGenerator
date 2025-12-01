@@ -1,8 +1,9 @@
 """ Frontend API generator """
 
-from fastapi import FastAPI
 from core.method_generator import AutoDB
-from service_definitions.registry import TASKS
+from core.registry import TASKS
+
+from fastapi import FastAPI
 
 db = AutoDB()
 app = FastAPI()

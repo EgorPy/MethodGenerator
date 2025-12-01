@@ -1,7 +1,8 @@
 """ Mass message API """
 
-from fastapi import APIRouter
 from core.method_generator import AutoDB
+
+from fastapi import APIRouter
 from aiogram import Bot
 
 router = APIRouter()

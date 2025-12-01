@@ -1,6 +1,7 @@
 """ Database generating methods """
 
-from logger import logger
+from core.logger import logger
+
 import inspect
 import sqlite3
 import re
@@ -10,8 +11,9 @@ import os
 class ConnectionManager:
     """ Database connection manager for FastAPI """
 
-    def __init__(self, path="../database.db"):
+    def __init__(self, path="/database.db"):
         self.path = path
+        # print(os.path.dirname(path))
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
     def connect(self) -> sqlite3.Connection:
@@ -395,7 +397,7 @@ class AutoDB:
             """ Set status method """
 
             _log_call_context(name)
-            self._ensure_table_and_columns(table, ["id"])
+            self._ensure_table_and_columns(table, list(where_columns.keys()))
             with self.connection:
                 where_clause = " AND ".join(f"{col} = ?" for col in where_columns)
                 self.cursor.execute(query.format(
