@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Form, status, Depends, HTTPException, Cookie
 from fastapi.responses import JSONResponse
 from typing_extensions import Annotated
+from datetime import datetime
 from typing import Optional
 import sqlite3
 
@@ -35,7 +36,7 @@ async def login(
         key="session_id",
         value=session_id,
         httponly=True,
-        secure=False,
+        secure=False,  # TODO: set True in production (only HTTPS)
         samesite="strict",
         max_age=config.SESSION_DURATION,
         path="/"
@@ -43,7 +44,7 @@ async def login(
     return response
 
 
-@router.post("/register/", status_code=201)
+@router.post("/register/", status_code=status.HTTP_201_CREATED)
 async def register(
         first_name: Annotated[str, Form(min_length=2, max_length=32, pattern=r"^[^\d]+$")],
         last_name: Annotated[str, Form(min_length=2, max_length=32, pattern=r"^[^\d]+$")],
@@ -88,7 +89,10 @@ async def check_user_session(session_id: Optional[str] = Cookie(None),
     if not session_id:
         logger.info("No session provided")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No session provided")
-    user_id = db.get_user_by_session(session_id)
+    db.create_table_if_not_exists("sessions")
+    db.create_column_if_not_exists("sessions", "expires_at")
+    user_id = db.execute("SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?",
+                         (session_id, datetime.utcnow()))
     if not user_id:
         logger.info("Invalid or expired session")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session")
@@ -104,7 +108,10 @@ async def check_user_session_for_logout(session_id: Optional[str] = Cookie(None)
     if not session_id:
         logger.info("No session provided")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No session provided")
-    user_id = db.get_user_by_session(session_id)
+    db.create_table_if_not_exists("sessions")
+    db.create_column_if_not_exists("sessions", "expires_at")
+    user_id = db.execute("SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?",
+                         (session_id, datetime.utcnow()))
     if not user_id:
         logger.info("Invalid or expired session")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired session")

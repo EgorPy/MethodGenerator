@@ -7,7 +7,7 @@ document.querySelector(".contact-form").addEventListener("submit", async functio
 
     const errorText = document.querySelector(".error-text")
 
-    const response = await fetch(`${BACKEND_URL}/login/`, {
+    const response = await fetch(`${BACKEND_URL}/auth/login/`, {
         method: "POST",
         headers: {
             "Accept": "application/json",
@@ -22,16 +22,7 @@ document.querySelector(".contact-form").addEventListener("submit", async functio
 
     if (response.ok) {
         const result = await response.json()
-        const is_booking = localStorage.getItem("is_booking")
-        if (is_booking === null || is_booking === 'null') {
-            window.location.href = "/profile"
-        } else {
-            if (document.referrer.includes("student")) {
-                window.location.href = "/schedule-student"
-            } else {
-                window.location.href = "/schedule-parent"
-            }
-        }
+        window.location.href = "/profile"
     } else {
         const error = await response.json()
         if (response.status === 401) {

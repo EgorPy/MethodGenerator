@@ -11,6 +11,7 @@ import threading
 import uvicorn
 import logging
 
+
 app = FastAPI()
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
@@ -28,17 +29,20 @@ def start_server():
     """ Starts the server """
 
     logger.info(f"BACKEND server started at http://{config.DOMAIN}:{config.BACKEND_PORT}")
-    uvicorn.run("backend_main:app", host=config.DOMAIN, port=int(config.BACKEND_PORT), reload=False)
+    uvicorn.run("backend_main:app", host=config.DOMAIN, port=int(config.BACKEND_PORT), reload=True)
 
 
 def run():
     """ Sets up the server """
 
-    logger.setLevel(logging.WARNING)
+    logger = logging.getLogger("core")
+    logger.setLevel(logging.DEBUG)
 
-    server_thread = threading.Thread(target=start_server, daemon=True)
-    server_thread.start()
-    server_thread.join()
+    start_server()
+
+    # server_thread = threading.Thread(target=start_server, daemon=True)
+    # server_thread.start()
+    # server_thread.join()
 
 
 if __name__ == '__main__':

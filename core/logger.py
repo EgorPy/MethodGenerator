@@ -17,7 +17,7 @@ class ColorFormatter(logging.Formatter):
     """ Colorful formatter for log output """
 
     COLORS = {
-        logging.DEBUG: GREEN,
+        logging.DEBUG: BLUE,
         # logging.INFO: BLUE,
         logging.WARNING: YELLOW,
         logging.ERROR: RED,
@@ -36,7 +36,7 @@ def setup_logger():
     """ Logger setup """
 
     logger = logging.getLogger("Core")
-    logger.setLevel(logging.INFO)  # I put WARNING here to make less output in console, for hard debugging use DEBUG
+    logger.setLevel(logging.DEBUG)  # I put WARNING here to make less output in console, for hard debugging use DEBUG
 
     # IMPORTANT: prevent adding handlers twice
     if logger.hasHandlers():

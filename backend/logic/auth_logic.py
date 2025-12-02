@@ -5,6 +5,8 @@ from ..security import verify_password, hash_password
 from core.method_generator import AutoDB
 from core.config import config
 
+from datetime import datetime, timedelta
+
 
 class AuthLogic:
     @staticmethod
@@ -12,13 +14,15 @@ class AuthLogic:
 
         db = AutoDB(connection)
 
-        hashed_password = db.get_user_password(email=email)
+        hashed_password = db.get_password_from_users(email=email)
         if not hashed_password or not verify_password(password, hashed_password):
             return None
 
-        user_id = db.get_user_id(email=email)
+        user_id = db.get_id_from_users(email=email)
         db.delete_session(user_id=user_id)
-        session_id = db.insert_session(user_id=user_id, duration=config.SESSION_DURATION)
+        response = db.insert_session(user_id=user_id, duration=config.SESSION_DURATION,
+                                       expires_at=str(datetime.now() + timedelta(seconds=int(config.SESSION_DURATION))))
+        session_id = response[0]["id"]
 
         return session_id
 
@@ -45,4 +49,4 @@ class AuthLogic:
         """ Logout user """
 
         db = AutoDB(connection)
-        db.delete_session(session_id)
+        db.delete_session(id=session_id)

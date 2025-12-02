@@ -12,7 +12,7 @@ import logging
 async def run():
     """ Core startup """
 
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     logger.info("=== Core system started ===")
 

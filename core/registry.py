@@ -6,7 +6,7 @@ import os
 
 TASKS = {}
 
-SERVICES_PATH = os.path.join(os.path.dirname(__file__), "..", "services")
+SERVICES_PATH = os.path.join(os.path.dirname(__file__), "services")
 SERVICES_PATH = os.path.abspath(SERVICES_PATH)
 
 # auto import all packages in services/

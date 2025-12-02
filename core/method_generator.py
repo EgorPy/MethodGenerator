@@ -11,14 +11,13 @@ import os
 class ConnectionManager:
     """ Database connection manager for FastAPI """
 
-    def __init__(self, path="/database.db"):
+    def __init__(self, path="database.db"):
         self.path = path
-        # print(os.path.dirname(path))
-        os.makedirs(os.path.dirname(path), exist_ok=True)
 
     def connect(self) -> sqlite3.Connection:
         """ Method that returns connection to the database """
 
+        logger.debug("Initializing database connection at " + os.getcwd() + "\\" + self.path)
         conn = sqlite3.connect(self.path)
         conn.row_factory = sqlite3.Row
         return conn
@@ -107,7 +106,8 @@ class AutoDB:
             for parser in (
                     self._parse_get_with_status_table,
                     self._parse_get_by_column,
-                    self._parse_get_table_column,
+                    # self._parse_get_table_column,
+                    self._parse_get_column_from_table,
             ):
                 method = parser(name)
                 if method:
@@ -201,16 +201,51 @@ class AutoDB:
 
         return method
 
-    def _parse_get_table_column(self, name: str):
-        """ get_{table}_{column}(columns_as_keyword_arguments) """
+    # def _parse_get_table_column(self, name: str):
+    #     """ get_{table}_{column}(columns_as_keyword_arguments) """
+    #
+    #     match = re.match(r"^get_(\w+)_(\w+)$", name)
+    #     if not match:
+    #         return None
+    #
+    #     table_singular, return_column = match.groups()
+    #
+    #     table = table_singular + "s"
+    #
+    #     def method(**columns):
+    #         """ Returns column selected by columns """
+    #
+    #         _log_call_context(name)
+    #
+    #         if not columns:
+    #             raise ValueError(f"{name} must be called with keyword arguments for WHERE columns")
+    #
+    #         where_columns = list(columns.keys())
+    #         self._ensure_table_and_columns(table, [return_column] + where_columns)
+    #
+    #         where_clause = " AND ".join(f"{col} = ?" for col in where_columns)
+    #         query = f"SELECT {return_column} FROM {table} WHERE {where_clause}"
+    #
+    #         values = tuple(columns[col] for col in where_columns)
+    #
+    #         with self.connection:
+    #             self.cursor.execute(query, values)
+    #             rows = self.cursor.fetchall()
+    #
+    #         if not rows:
+    #             return None
+    #         return rows[0][return_column]
+    #
+    #     return method
 
-        match = re.match(r"^get_(\w+)_(\w+)$", name)
+    def _parse_get_column_from_table(self, name: str):
+        """ get_{column}_from_{table}(columns_as_keyword_arguments) """
+
+        match = re.match(r"^get_(\w+)_from_(\w+)$", name)
         if not match:
             return None
 
-        table_singular, return_column = match.groups()
-
-        table = table_singular + "s"
+        return_column, table = match.groups()
 
         def method(**columns):
             """ Returns column selected by columns """
@@ -225,6 +260,8 @@ class AutoDB:
 
             where_clause = " AND ".join(f"{col} = ?" for col in where_columns)
             query = f"SELECT {return_column} FROM {table} WHERE {where_clause}"
+
+            logger.debug(query)
 
             values = tuple(columns[col] for col in where_columns)
 
@@ -389,7 +426,7 @@ class AutoDB:
         if not table.endswith("s"):
             table += "s"
 
-        query = "SELECT COUNT(*) FROM {} WHERE {}"
+        query = "SELECT COUNT(*) as count FROM {} WHERE {}"
         _log_call_context(name)
         logger.debug(f"Prepared SQL query: {query}")
 
@@ -404,7 +441,7 @@ class AutoDB:
                     table,
                     where_clause
                 ), (*where_columns.values(),))
-                result = self.cursor.fetchall()
+                result: list[sqlite3.Row] = self.cursor.fetchall()
                 self.cursor.execute(f"PRAGMA table_info({table})")
                 columns = [row[1] for row in self.cursor.fetchall()]
                 logger.info(f"Returned {len(result)} rows with columns: {columns}")
@@ -504,109 +541,114 @@ class AutoDB:
         logger.debug(f"Creating table '{table}' with SQL: {sql}")
         self.cursor.execute(sql)
 
-    def execute(self, sql: str, params: tuple = None):
+    def create_column_if_not_exists(self, table_name: str, column_name: str, column_type: str = "TEXT") -> None:
+        """
+        Создать столбец в таблице, если он не существует
+
+        Args:
+            table_name: Имя таблицы
+            column_name: Имя столбца
+            column_type: Тип столбца (по умолчанию TEXT)
+        """
+
+        with self.connection:
+            self.cursor.execute(f"PRAGMA table_info({table_name})")
+            existing_columns = {row[1] for row in self.cursor.fetchall()}
+
+            if column_name not in existing_columns:
+                self.cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+                self.connection.commit()
+
+    def create_table_if_not_exists(self, table_name: str) -> None:
+        """
+        Создать таблицу, если она не существует
+
+        Args:
+            table_name: Имя таблицы
+        """
+
+        with self.connection:
+            self.cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+                (table_name,)
+            )
+
+            if not self.cursor.fetchone():
+                self.cursor.execute(f"""
+                    CREATE TABLE {table_name} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                self.connection.commit()
+
+    def execute(self, sql: str, params):
         """ Execute a custom SQL query with optional parameters """
 
-        logger.debug(f"Executing custom SQL: {sql}")
-        if params:
-            logger.debug(f"With parameters: {params}")
-
         sql_lower = sql.lower()
-
-        # ------------------------------
-        # 1. Detect table names
-        # ------------------------------
         tables = set()
 
-        # SELECT ... FROM table
-        m = re.findall(r"from\s+(\w+)", sql_lower)
-        tables.update(m)
+        patterns = [
+            r'from\s+(\w+)',
+            r'join\s+(\w+)',
+            r'insert\s+into\s+(\w+)',
+            r'update\s+(\w+)',
+            r'delete\s+from\s+(\w+)',
+            r'table\s+(\w+)'
+        ]
 
-        # JOIN table
-        m = re.findall(r"join\s+(\w+)", sql_lower)
-        tables.update(m)
+        for pattern in patterns:
+            tables.update(re.findall(pattern, sql_lower))
 
-        # INSERT INTO table
-        m = re.findall(r"insert\s+into\s+(\w+)", sql_lower)
-        tables.update(m)
+        keywords = {'select', 'where', 'set', 'values', 'as', 'on', 'and', 'or'}
+        tables = {t for t in tables if t not in keywords}
 
-        # UPDATE table
-        m = re.findall(r"update\s+(\w+)", sql_lower)
-        tables.update(m)
-
-        # DELETE FROM table
-        m = re.findall(r"delete\s+from\s+(\w+)", sql_lower)
-        tables.update(m)
-
-        # ------------------------------
-        # 2. Ensure tables exist
-        # ------------------------------
         for table in tables:
-            with self.connection:
-                self.cursor.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name = ?", (table,)
-                )
-                if not self.cursor.fetchone():
-                    logger.warning(f"[execute] Table '{table}' does not exist. Creating...")
-                    self._create_table(table)
+            self.cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+                (table,)
+            )
+            if not self.cursor.fetchone():
+                self.cursor.execute(f"""
+                    CREATE TABLE {table} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
-        # ------------------------------
-        # 3. Detect columns from SELECT/WHERE
-        # ------------------------------
         for table in tables:
             self.cursor.execute(f"PRAGMA table_info({table})")
-            existing_cols = {row[1] for row in self.cursor.fetchall()}
+            existing = {row[1] for row in self.cursor.fetchall()}
 
-            # SELECT column1, column2 FROM table
-            m = re.search(r"select\s+(.*?)\s+from", sql_lower)
-            if m:
-                raw = m.group(1)
-                if raw.strip() != "*" and "(" not in raw:
-                    cols = [c.strip() for c in raw.split(",")]
-                    for col in cols:
-                        if col not in existing_cols:
-                            logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
-                            self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
-                            existing_cols.add(col)
+            columns_to_check = set()
 
-            # WHERE column = ?
-            m = re.findall(r"where\s+(\w+)\s*=", sql_lower)
-            for col in m:
-                if col not in existing_cols:
-                    logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
-                    self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
-                    existing_cols.add(col)
+            select_match = re.search(r'select\s+(.+?)\s+from', sql_lower)
+            if select_match and select_match.group(1) != '*':
+                cols = [c.strip().split()[-1] for c in select_match.group(1).split(',')]
+                columns_to_check.update(cols)
 
-            # UPDATE table SET column = ...
-            m = re.findall(r"set\s+(\w+)\s*=", sql_lower)
-            for col in m:
-                if col not in existing_cols:
-                    logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
-                    self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
-                    existing_cols.add(col)
+            columns_to_check.update(re.findall(r'where\s+(\w+)\s*[=<>!]', sql_lower))
 
-            # INSERT INTO table (col1, col2, ...)
-            m = re.search(r"insert\s+into\s+\w+\s*\((.*?)\)", sql_lower)
-            if m:
-                cols = [c.strip() for c in m.group(1).split(",")]
-                for col in cols:
-                    if col not in existing_cols:
-                        logger.warning(f"[execute] Column '{col}' does not exist in '{table}'. Creating...")
+            columns_to_check.update(re.findall(r'set\s+(\w+)\s*=', sql_lower))
+
+            insert_match = re.search(r'insert\s+into\s+\w+\s*\((.+?)\)', sql_lower)
+            if insert_match:
+                cols = [c.strip() for c in insert_match.group(1).split(',')]
+                columns_to_check.update(cols)
+
+            for col in columns_to_check:
+                if col not in existing and col not in ['id', '*'] and '(' not in col:
+                    try:
                         self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
-                        existing_cols.add(col)
+                    except Exception:
+                        pass
 
-        # ------------------------------
-        # 4. Run actual query
-        # ------------------------------
         with self.connection:
             if params:
                 self.cursor.execute(sql, params)
             else:
                 self.cursor.execute(sql)
 
-            if sql_lower.strip().startswith("select"):
-                result = self.cursor.fetchall()
-                logger.info(f"Custom SQL returned {len(result)} rows")
-                return [dict(row) for row in result]
-            else:
-                logger.info("Custom SQL executed successfully")
+            if sql_lower.strip().startswith('select'):
+                return [dict(row) for row in self.cursor.fetchall()]
+            return
