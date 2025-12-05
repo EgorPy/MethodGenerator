@@ -5,3 +5,4 @@ passlib~=1.7.4
 uvicorn~=0.38.0
 typing_extensions~=4.15.0
 aiohttp~=3.12.14
+dominate~=2.9.1
