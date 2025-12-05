@@ -1,4 +1,4 @@
-from layout.generator import generate_html, save_html
+from ..layout.generate_html import generate_page, save_html
 
 # Здесь могли бы подключаться Rect и layout-алгоритмы, если нужно.
 
@@ -12,7 +12,7 @@ elements = [
     {"type": "img_output", "src": "../frontend/web/static/favicon.ico"}
 ]
 
-html = generate_html(elements)
+html = generate_page(elements, 1536, 864)
 save_html("generated.html", html)
 
 print("Страница generated.html создана.")

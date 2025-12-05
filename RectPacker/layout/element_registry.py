@@ -1,3 +1,4 @@
+from RectPacker.layout.ui_rect import UIElementRect
 import dominate.tags as tags
 
 registry = {}
@@ -16,58 +17,51 @@ def register(name):
 
 
 @register("text_input")
-def render_text_input(el):
-    return tags.input_(_type="text", placeholder=el.get("placeholder", ""), **make_style(el))
+def render_text_input(rect, props):
+    return tags.input_(_type="text", **make_style(rect))
 
 
 @register("checkbox")
-def render_checkbox(el):
-    return tags.input_(_type="checkbox", **make_style(el))
+def render_checkbox(rect, props):
+    return tags.input_(_type="checkbox", **make_style(rect))
 
 
 @register("radiobutton")
-def render_radiobutton(el):
-    return tags.input_(_type="radio", **make_style(el))
+def render_radiobutton(rect, props):
+    return tags.input_(_type="radio", **make_style(rect))
 
 
 @register("dropdown")
-def render_dropdown(el):
-    s = tags.select(**make_style(el))
-    for opt in el.get("options", []):
+def render_dropdown(rect, props):
+    s = tags.select(**make_style(rect))
+    for opt in props.get("options", []):
         s.add(tags.option(opt))
     return s
 
 
 @register("text_output")
-def render_text_output(el):
-    return tags.div(el.get("text", ""), **make_style(el))
+def render_text_output(rect, props):
+    return tags.div(props.get("text", ""), **make_style(rect))
 
 
 @register("img_input")
-def render_img_input(el):
-    return tags.input_(_type="file", accept="image/*", **make_style(el))
+def render_img_input(rect, props):
+    return tags.input_(_type="file", accept="image/*", **make_style(rect))
 
 
 @register("img_output")
-def render_img_output(el):
-    return tags.img(src=el.get("src", ""), alt=el.get("alt", ""), **make_style(el))
+def render_img_output(rect, props):
+    return tags.img(src=props.get("src", ""), **make_style(rect))
 
 
-def make_style(el):
-    """
-    Generates inline-style for DOM element.
-    """
-
-    style = []
-
-    if "pwidth" in el: style.append(f"width:{el['pwidth']}%;")
-    if "min_width" in el: style.append(f"min-width:{el['min_width']}px;")
-    if "max_width" in el: style.append(f"max-width:{el['max_width']}px;")
-
-    if "pheight" in el: style.append(f"height:{el['pheight']}%;")
-    if "min_height" in el: style.append(f"min-height:{el['min_height']}px;")
-    if "max_height" in el: style.append(f"max-height:{el['max_height']}px;")
-
-    if style:
-        return {"style": " ".join(style)}
-    return {}
+def make_style(rect):
+    return {
+        "style": (
+            f"position:absolute;"
+            f"left:{rect.x + rect.margin_x}px;"
+            f"top:{rect.y + rect.margin_y}px;"
+            f"width:{rect.width}px;"
+            f"height:{rect.height}px;"
+            f"box-sizing:border-box;"
+        )
+    }

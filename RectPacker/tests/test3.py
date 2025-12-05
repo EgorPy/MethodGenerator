@@ -1,10 +1,10 @@
-from layout.generate_html import generate_page, save_html
-from layout.ui_rect import UIElementRect
+from RectPacker.layout.generate_html import generate_page, save_html
+from RectPacker.layout.ui_rect import UIElementRect
 
 elements = [
     UIElementRect(
         type_="text_input",
-        width=0, height=40,
+        width=200, height=40,
         pwidth=50,  # ← адаптивно
         min_width=200,
         props={}
@@ -32,7 +32,7 @@ elements = [
     )
 ]
 
-html = generate_page(elements, 1536, 864)
+html = generate_page(elements, screen_width=1536, screen_height=864)
 save_html("page.html", html)
 
 print("page.html создан.")
