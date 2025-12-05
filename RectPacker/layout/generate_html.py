@@ -16,12 +16,13 @@ def generate_page(rects, screen_width, screen_height):
 
     with doc.head:
         style("""
-            body {
+            html, body {
                 margin: 0;
                 padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
                 position: relative;
-                width: 100vw;
-                height: 100vh;
             }
         """)
 

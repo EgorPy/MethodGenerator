@@ -3,6 +3,8 @@ from layout.ui_rect import UIElementRect
 
 elements = [
     UIElementRect(
+        margin_x=0,
+        margin_y=0,
         type_="text_input",
         width=0, height=40,
         pwidth=50,  # ← адаптивно
@@ -11,6 +13,8 @@ elements = [
     ),
 
     UIElementRect(
+        margin_x=0,
+        margin_y=0,
         type_="dropdown",
         width=300, height=40,
         pwidth=30,  # ← адаптивно
@@ -18,6 +22,8 @@ elements = [
     ),
 
     UIElementRect(
+        margin_x=0,
+        margin_y=0,
         type_="text_output",
         width=400, height=100,
         pwidth=80,
@@ -25,10 +31,12 @@ elements = [
     ),
 
     UIElementRect(
+        margin_x=0,
+        margin_y=0,
         type_="img_output",
         width=200, height=150,
         pwidth=25,
-        props={"src": "https://via.placeholder.com/150"}
+        props={"src": "https://picsum.photos/200/150"}
     )
 ]
 

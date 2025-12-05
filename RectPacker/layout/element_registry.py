@@ -1,4 +1,5 @@
 from RectPacker.layout.ui_rect import UIElementRect
+from RectPacker.layout.rect_packer import Rect
 import dominate.tags as tags
 
 registry = {}
@@ -54,12 +55,12 @@ def render_img_output(rect, props):
     return tags.img(src=props.get("src", ""), **make_style(rect))
 
 
-def make_style(rect):
+def make_style(rect: Rect):
     return {
         "style": (
             f"position:absolute;"
-            f"left:{rect.x + rect.margin_x}px;"
-            f"top:{rect.y + rect.margin_y}px;"
+            f"left:{rect.x}px;"
+            f"top:{rect.y}px;"
             f"width:{rect.width}px;"
             f"height:{rect.height}px;"
             f"box-sizing:border-box;"
