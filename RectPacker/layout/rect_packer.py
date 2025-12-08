@@ -11,10 +11,16 @@ class Rect:
                  pwidth: int = None,
                  pheight: int = None,
                  parent: "Rect" = None,
+                 children: list["Rect"] = None,
                  element: str = None):
 
         self.parent = parent
         self.element = element
+
+        if children is None:
+            self.children = []
+        else:
+            self.children = children
 
         self.x = 0
         self.y = 0
@@ -81,7 +87,7 @@ class Rect:
         return self.size_x, self.size_y
 
     @staticmethod
-    def pack_rects(parent_rect: "Rect", rects: list["Rect"]):
+    def pack_rects(parent_rect: "Rect", rects: list["Rect"], centered: bool = False):
         """ Defines rect.x and rect.y taking into account margin and size_x/size_y """
 
         x_cursor = 0
@@ -102,3 +108,10 @@ class Rect:
 
             if y_cursor + rect.size_y > parent_rect.height:
                 raise ValueError("Cannot pack rects in the specified parent")
+
+        if centered:
+            y_cursor = 0
+            for rect in rects:
+                rect.x = (parent_rect.width - rect.width) // 2
+                y_cursor += row_height
+                rect.y = y_cursor + rect.margin_y

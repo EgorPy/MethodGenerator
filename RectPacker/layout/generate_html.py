@@ -1,20 +1,52 @@
 from RectPacker.layout.element_registry import registry
 from RectPacker.layout.rect_packer import Rect
-from dominate.tags import style
+from dominate.tags import style, link, meta
 from dominate import document
 
 
-def generate_page(rects, screen_width, screen_height):
-    parent = Rect(screen_width, screen_height)
+def layout(rect, centered):
+    if not rect.children:
+        return
 
+    # У всех детей задан parent = rect (UIElementRect делает это сам)
+
+    Rect.pack_rects(rect, rect.children, centered=centered)
+
+    for child in rect.children:
+        layout(child, centered)
+
+
+def render_with_children(rect):
+    renderer = registry.get(rect.type_)
+    if not renderer:
+        raise ValueError(f"No renderer for type '{rect.type_}'")
+
+    tag = renderer(rect, rect.props)
+
+    for child in rect.children:
+        tag.add(render_with_children(child))
+
+    return tag
+
+
+def generate_page(rects, screen_width, screen_height, centered: bool = False):
+    root = Rect(screen_width, screen_height, margin_x=0, margin_y=0)
+
+    top_level = []
     for r in rects:
-        r.parent = parent
+        if r.parent is None:
+            r.parent = root
+            root.children.append(r)
+            top_level.append(r)
 
-    Rect.pack_rects(parent, rects)
+    layout(root, centered=centered)
 
     doc = document(title="Generated Layout")
 
     with doc.head:
+        link(rel="stylesheet", href="../frontend/web/static/style.css")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        meta(charset="UTF-8")
         style("""
             html, body {
                 margin: 0;
@@ -27,11 +59,8 @@ def generate_page(rects, screen_width, screen_height):
         """)
 
     with doc:
-        for rect in rects:
-            renderer = registry.get(rect.type_)
-            if not renderer:
-                raise ValueError(f"No renderer for type '{rect.type_}'")
-            doc.add(renderer(rect, rect.props))
+        for child in root.children:
+            doc.add(render_with_children(child))
 
     return doc.render()
 

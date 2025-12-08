@@ -1,4 +1,3 @@
-from RectPacker.layout.ui_rect import UIElementRect
 from RectPacker.layout.rect_packer import Rect
 import dominate.tags as tags
 
@@ -40,9 +39,14 @@ def render_dropdown(rect, props):
     return s
 
 
-@register("text_output")
+@register("h1")
 def render_text_output(rect, props):
-    return tags.div(props.get("text", ""), **make_style(rect))
+    return tags.h1(props.get("text", ""), **make_style(rect))
+
+
+@register("h3")
+def render_text_output(rect, props):
+    return tags.h3(props.get("text", ""), **make_style(rect))
 
 
 @register("img_input")
@@ -53,6 +57,11 @@ def render_img_input(rect, props):
 @register("img_output")
 def render_img_output(rect, props):
     return tags.img(src=props.get("src", ""), **make_style(rect))
+
+
+@register("container")
+def render_container(rect, props):
+    return tags.div(**make_style(rect))
 
 
 def make_style(rect: Rect):

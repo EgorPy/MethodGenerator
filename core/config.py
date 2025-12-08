@@ -3,7 +3,9 @@
 __all__ = ["config"]
 
 from core.logger import logger
+
 import configparser
+import sys
 
 
 class ConfigWrapper:
@@ -28,7 +30,7 @@ try:
     config = ConfigWrapper(raw_config).CONFIG
 except KeyError as e:
     logger.error(f"Missing configuration key: {e}")
-    exit()
+    sys.exit()
 except configparser.Error as e:
     logger.error(f"Error reading config file: {e}")
-    exit()
+    sys.exit()
