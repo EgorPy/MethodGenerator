@@ -1,4 +1,4 @@
-from RectPacker.layout.element_registry import registry
+from RectPacker.layout.element_registry import registry, local_xy
 from RectPacker.layout.rect_packer import Rect
 from dominate.tags import style, link, meta
 from dominate import document

@@ -21,7 +21,7 @@ class AuthLogic:
         user_id = db.get_id_from_users(email=email)
         db.delete_session(user_id=user_id)
         response = db.insert_session(user_id=user_id, duration=config.SESSION_DURATION,
-                                       expires_at=str(datetime.now() + timedelta(seconds=int(config.SESSION_DURATION))))
+                                     expires_at=str(datetime.now() + timedelta(seconds=int(config.SESSION_DURATION))))
         session_id = response[0]["id"]
 
         return session_id

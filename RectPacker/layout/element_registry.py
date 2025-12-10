@@ -16,6 +16,19 @@ def register(name):
     return decorator
 
 
+def local_xy(rect: Rect):
+    parent = rect.parent
+    if parent is None:
+        return rect.x, rect.y
+
+    # Если parent.centered_x включен, child.x уже глобальный → вычитаем parent.x
+    if getattr(parent, "center_x", False):
+        return rect.x - parent.x, rect.y
+
+    # Если center_x выключен, child.x уже локальный
+    return rect.x, rect.y
+
+
 @register("text_input")
 def render_text_input(rect, props):
     return tags.input_(_type="text", **make_style(rect))
@@ -40,12 +53,12 @@ def render_dropdown(rect, props):
 
 
 @register("h1")
-def render_text_output(rect, props):
+def render_h1(rect, props):
     return tags.h1(props.get("text", ""), **make_style(rect))
 
 
 @register("h3")
-def render_text_output(rect, props):
+def render_h3(rect, props):
     return tags.h3(props.get("text", ""), **make_style(rect))
 
 
@@ -65,11 +78,13 @@ def render_container(rect, props):
 
 
 def make_style(rect: Rect):
+    x, y = local_xy(rect)
+
     return {
         "style": (
             f"position:absolute;"
-            f"left:{rect.x}px;"
-            f"top:{rect.y}px;"
+            f"left:{x}px;"
+            f"top:{y}px;"
             f"width:{rect.width}px;"
             f"height:{rect.height}px;"
             f"box-sizing:border-box;"
