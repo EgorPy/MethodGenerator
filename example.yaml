@@ -1,0 +1,26 @@
+type: container
+width: 1536
+height: 864
+props:
+  center_x: true
+children:
+  - type: container
+    width: 320
+    height: 420
+    props:
+      center_x: true
+    layout: vertical
+    gap: 12
+    children:
+      - type: h3
+        props:
+          text: "Вход"
+      - type: text_input
+        bind: username
+      - type: text_input
+        bind: password
+      - type: checkbox
+        bind: remember_me
+      - type: button
+        props:
+          text: "Отправить"
