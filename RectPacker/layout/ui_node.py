@@ -1,27 +1,32 @@
+from ui_enums import ElementType, Layout, Align, Justify, Action
+
+from typing import Optional, List
+
+
 class UINode:
     def __init__(
             self,
-            type_: str,
+            type_: ElementType,
             *,
-            props: dict | None = None,
-            children: list["UINode"] | None = None,
+            props: Optional[dict] = None,
+            children: Optional[List["UINode"]] = None,
 
-            layout: str | None = None,  # vertical | horizontal | center | grid | None
-            gap: int | None = None,
+            layout: Layout = Layout.NONE,  # vertical | horizontal | center | grid | None
+            gap: Optional[int] = None,
 
-            align: str | None = None,  # start | center | end | stretch
-            justify: str | None = None,  # start | center | end | space-between
+            align: Optional[Align] = None,  # start | center | end | stretch
+            justify: Optional[Justify] = None,  # start | center | end | space-between
 
-            grow: int | None = None,  # flex-grow
-            shrink: int | None = None,  # flex-shrink
-            basis: str | None = None,  # flex-basis
+            grow: Optional[int] = None,  # flex-grow
+            shrink: Optional[int] = None,  # flex-shrink
+            basis: Optional[str] = None,  # flex-basis
 
-            max_width: int | None = None,
-            min_width: int | None = None,
+            max_width: Optional[int] = None,
+            min_width: Optional[int] = None,
 
-            bind: str | None = None,  # input/output binding
-            action: str | None = None,  # submit / click / etc.
-            endpoint: str | None = None,  # API endpoint
+            bind: Optional[str] = None,  # input/output binding
+            action: Optional[Action] = None,  # submit / click / etc.
+            endpoint: Optional[str] = None,  # API endpoint
     ):
         self.type_ = type_
         self.props = props or {}
