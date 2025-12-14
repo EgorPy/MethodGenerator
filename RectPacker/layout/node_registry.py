@@ -1,49 +1,100 @@
+from RectPacker.layout.ui_enums import ElementType, Justify, Layout, Align
+from RectPacker.layout.ui_node import UINode
 from dominate import tags
 
 registry = {}
 
 
-def register(name):
+def register(element_type: ElementType):
     """ Decorator registry for HTML element generator. """
 
     def decorator(func):
-        registry[name] = func
+        registry[element_type] = func
         return func
 
     return decorator
 
 
-def apply_class_and_style(node, default_class):
+def layout_to_css(node: UINode) -> dict:
+    if node.layout == Layout.NONE:
+        return {}
+
+    css = {
+        "display": "flex",
+        "flex-direction": "column" if node.layout == Layout.VERTICAL else "row"
+    }
+
+    if node.gap is not None:
+        css["gap"] = f"{node.gap}px"
+
+    if node.align:
+        css["align-items"] = {
+            Align.START: "flex-start",
+            Align.CENTER: "center",
+            Align.END: "flex-end",
+            Align.STRETCH: "stretch",
+        }[node.align]
+
+    if node.justify:
+        css["justify-content"] = {
+            Justify.START: "flex-start",
+            Justify.CENTER: "center",
+            Justify.END: "flex-end",
+            Justify.SPACE_BETWEEN: "space-between",
+            Justify.SPACE_AROUND: "space-around",
+        }[node.justify]
+
+    return css
+
+
+def apply_class_and_style(node, default_class: str):
     """
-    Returns a dict with _class and style for dominate
-    Uses node.props['style'] for customization
+    Returns attributes for dominate tags:
+    - merges default class with optional extra class from props
+    - applies inline styles from props['style']
+    - applies width / height from node if not overridden
     """
-    style = node.props.pop("style", {}) if node.props else {}
+
+    props = node.props or {}
+
+    style = dict(props.get("style", {}))
+
+    if getattr(node, "width", None) is not None:
+        style.setdefault("width", f"{node.width}px")
+
+    if getattr(node, "height", None) is not None:
+        style.setdefault("height", f"{node.height}px")
+
+    extra_class = props.get("class")
+    classes = default_class
+    if extra_class:
+        classes = f"{default_class} {extra_class}"
+
     return {
-        "_class": default_class,
+        "_class": classes,
         "style": "; ".join(f"{k}:{v}" for k, v in style.items())
     }
 
 
-@register("text_input")
+@register(ElementType.TEXT_INPUT)
 def render_text_input(node, props):
     attrs = apply_class_and_style(node, "text-input")
     return tags.input_(_type="text", **(props or {}), **attrs)
 
 
-@register("checkbox")
+@register(ElementType.CHECKBOX)
 def render_checkbox(node, props):
     attrs = apply_class_and_style(node, "checkbox")
     return tags.input_(_type="checkbox", **(props or {}), **attrs)
 
 
-@register("radiobutton")
+@register(ElementType.RADIOBUTTON)
 def render_radiobutton(node, props):
     attrs = apply_class_and_style(node, "radiobutton")
     return tags.input_(_type="radio", **(props or {}), **attrs)
 
 
-@register("dropdown")
+@register(ElementType.DROPDOWN)
 def render_dropdown(node, props):
     attrs = apply_class_and_style(node, "dropdown")
     s = tags.select(**(props or {}), **attrs)
@@ -52,38 +103,61 @@ def render_dropdown(node, props):
     return s
 
 
-@register("button")
+@register(ElementType.BUTTON)
 def render_button(node, props):
     attrs = apply_class_and_style(node, "button")
     text = (props or {}).get("text", "Submit")
     return tags.button(text, **attrs)
 
 
-@register("h1")
+@register(ElementType.H1)
 def render_h1(node, props):
     attrs = apply_class_and_style(node, "h1")
     return tags.h1((props or {}).get("text", ""), **attrs)
 
 
-@register("h3")
+@register(ElementType.H2)
+def render_h2(node, props):
+    attrs = apply_class_and_style(node, "h2")
+    return tags.h2((props or {}).get("text", ""), **attrs)
+
+
+@register(ElementType.H3)
 def render_h3(node, props):
     attrs = apply_class_and_style(node, "h3")
     return tags.h3((props or {}).get("text", ""), **attrs)
 
 
-@register("img_input")
+@register(ElementType.A)
+def render_a(node, props):
+    href = (props or {}).get("href", "#")
+    text = (props or {}).get("text", "")
+    attrs = apply_class_and_style(node, "a")
+    return tags.a(text, href=href, **attrs)
+
+
+@register(ElementType.IMG_INPUT)
 def render_img_input(node, props):
     attrs = apply_class_and_style(node, "img-input")
     return tags.input_(_type="file", accept="image/*", **(props or {}), **attrs)
 
 
-@register("img_output")
+@register(ElementType.IMG_OUTPUT)
 def render_img_output(node, props):
     attrs = apply_class_and_style(node, "img-output")
     return tags.img(src=(props or {}).get("src", ""), **attrs)
 
 
-@register("container")
+@register(ElementType.CONTAINER)
 def render_container(node, props):
-    attrs = apply_class_and_style(node, "container")
+    style = layout_to_css(node)
+
+    if props and "style" in props:
+        style.update(props["style"])
+
+    attrs = {
+        "_class": "container",
+        "style": "; ".join(f"{k}:{v}" for k, v in style.items())
+    }
+
     return tags.div(**attrs)

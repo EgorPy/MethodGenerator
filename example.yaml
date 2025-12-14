@@ -1,26 +1,46 @@
 type: container
-width: 1536
-height: 864
 props:
   center_x: true
 children:
   - type: container
-    width: 320
+    width: 600
     height: 420
     props:
       center_x: true
     layout: vertical
     gap: 12
     children:
-      - type: h3
+      - type: h1
         props:
-          text: "Вход"
+          text: Вход
+      - type: container
+        layout: horizontal
+        children:
+          - type: h3
+            props:
+              text: Нет аккаунта?
+              class: gray-text
+          - type: a
+            props:
+              href: "#"
+              text: Регистрация
       - type: text_input
         bind: username
+        props:
+          placeholder: user@gmail.com
       - type: text_input
         bind: password
-      - type: checkbox
-        bind: remember_me
+        props:
+          placeholder: Пароль
+          type: password
+      - type: container
+        layout: horizontal
+        children:
+          - type: h3
+            props:
+              text: Сосал?
+          - type: checkbox
+            bind: remember_me
       - type: button
         props:
           text: "Отправить"

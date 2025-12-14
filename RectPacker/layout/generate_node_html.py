@@ -40,9 +40,31 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
     included_css = set()
 
     def scan_node_for_css(node: UINode):
-        css_name = f"{node.type_}.css"
-        if css_name in available_css_files:
-            included_css.add(css_name)
+        """
+        Collects CSS files for:
+        - base element class (node.type_.value)
+        - extra classes from props.class
+        """
+
+        classes = set()
+
+        # базовый класс элемента
+        classes.add(node.type_.value)
+
+        # дополнительные классы
+        props = node.props or {}
+        extra = props.get("class")
+        if extra:
+            for cls in extra.split():
+                classes.add(cls)
+
+        # проверяем существование css-файлов
+        for cls in classes:
+            css_name = f"{cls}.css"
+            if css_name in available_css_files:
+                included_css.add(css_name)
+
+        # рекурсия
         for child in node.children:
             scan_node_for_css(child)
 
@@ -51,7 +73,7 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
 
     with doc.head:
         for f in included_css:
-            link(rel="stylesheet", href=os.path.join(CSS_DIR, f))
+            link(rel="stylesheet", href=f"../../frontend/web/static/{f}")
 
         link(rel="stylesheet", href=os.path.join(CSS_DIR, "style.css"))
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
@@ -68,12 +90,6 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
                 display: flex;
                 justify-content: center;
                 align-items: center;
-            }
-
-            .container {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
             }
         """)
 

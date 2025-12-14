@@ -1,4 +1,17 @@
 from enum import Enum
+import yaml
+import os
+
+# TODO: Add logging, validation and exception handling
+
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "element_types.yaml")
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    data = yaml.safe_load(f)["elements"]
+ElementType = Enum(
+    "ElementType",
+    {key.upper(): key for key in data.keys()},
+    type=str
+)
 
 
 class Layout(str, Enum):
@@ -21,20 +34,7 @@ class Justify(str, Enum):
     CENTER = "center"
     END = "end"
     SPACE_BETWEEN = "space-between"
-
-
-class ElementType(str, Enum):
-    CONTAINER = "container"
-    TEXT_INPUT = "text_input"
-    CHECKBOX = "checkbox"
-    RADIOBUTTON = "radiobutton"
-    DROPDOWN = "dropdown"
-    H1 = "h1"
-    H2 = "h2"
-    H3 = "h3"
-    IMG_INPUT = "img_input"
-    IMG_OUTPUT = "img_output"
-    BUTTON = "button"
+    SPACE_AROUND = "space-around"
 
 
 class Action(str, Enum):

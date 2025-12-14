@@ -8,6 +8,8 @@ class UINode:
             self,
             type_: ElementType,
             *,
+            width: int | None = None,
+            height: int | None = None,
             props: Optional[dict] = None,
             children: Optional[List["UINode"]] = None,
 
@@ -29,6 +31,8 @@ class UINode:
             endpoint: Optional[str] = None,  # API endpoint
     ):
         self.type_ = type_
+        self.width = width
+        self.height = height
         self.props = props or {}
         self.children = children or []
 

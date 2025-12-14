@@ -18,7 +18,7 @@ app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # f"http://{config.DOMAIN}:{config.FRONTEND_PORT}"
+    allow_origins=[f"http://{config.DOMAIN}:{config.FRONTEND_PORT}"],  # f"http://{config.DOMAIN}:{config.FRONTEND_PORT}"
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

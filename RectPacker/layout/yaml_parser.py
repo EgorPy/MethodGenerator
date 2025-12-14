@@ -94,6 +94,8 @@ def parse_ui_node(data: Dict[str, Any]) -> UINode:
         basis=data.get("basis"),
         max_width=data.get("max_width"),
         min_width=data.get("min_width"),
+        width=data.get("width"),
+        height=data.get("height"),
         bind=data.get("bind"),
         action=parse_enum(Action, data.get("action")),
         endpoint=data.get("endpoint"),
@@ -134,7 +136,7 @@ def generate_html_from_yaml(path: str, html_path: str, screen_width: int = 1536,
     html_text = generate_page_from_ui_tree([root_node])
 
     save_html(html_path, html_text)
-    print(f"HTML успешно создан: {html_path}")
+    print(f"HTML successfully created: {html_path}")
 
 
 generate_html_from_yaml("../../example.yaml", "page.html")
