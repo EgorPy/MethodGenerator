@@ -3,3 +3,4 @@
 - сделать парсер из YAML в HTML через мой element_registry.py. Для этого нужно YAML парсить в объекты UINode, и потом их
   адаптивно позиционировать
 - сделать парсер в YAML из описания нужного API сервиса в services/service1.
+- Заменить .ini config на .yaml
