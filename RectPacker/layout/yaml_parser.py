@@ -1,5 +1,5 @@
-from RectPacker.layout.ui_enums import ElementType, Layout, Align, Justify, Action
 from RectPacker.layout.generate_node_html import generate_page_from_ui_tree, save_html
+from RectPacker.layout.ui_enums import ElementType, Layout, Align, Justify
 from RectPacker.layout.ui_node import UINode
 
 from typing import Any, Callable, List, Optional, Dict
@@ -97,7 +97,7 @@ def parse_ui_node(data: Dict[str, Any]) -> UINode:
         width=data.get("width"),
         height=data.get("height"),
         bind=data.get("bind"),
-        action=parse_enum(Action, data.get("action")),
+        action=data.get("action"),
         endpoint=data.get("endpoint"),
     )
 
@@ -139,4 +139,4 @@ def generate_html_from_yaml(path: str, html_path: str, screen_width: int = 1536,
     print(f"HTML successfully created: {html_path}")
 
 
-generate_html_from_yaml("../../example.yaml", "page.html")
+generate_html_from_yaml("example.yaml", "page.html")

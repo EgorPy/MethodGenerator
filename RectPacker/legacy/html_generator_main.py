@@ -1,5 +1,5 @@
-from layout.generate_html import generate_page, save_html
-from layout.ui_rect import UIElementRect
+from generate_rect_html import generate_page, save_html
+from ui_rect import UIElementRect
 
 elements = []
 

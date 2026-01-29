@@ -76,27 +76,44 @@ def apply_class_and_style(node, default_class: str):
     }
 
 
+def apply_runtime_attrs(node: UINode, attrs: dict) -> dict:
+    if node.bind:
+        attrs["data-bind"] = node.bind
+
+    if node.action:
+        attrs["data-action"] = node.action
+
+    if node.endpoint:
+        attrs["data-endpoint"] = node.endpoint
+
+    return attrs
+
+
 @register(ElementType.TEXT_INPUT)
 def render_text_input(node, props):
     attrs = apply_class_and_style(node, "text-input")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.input_(_type="text", **(props or {}), **attrs)
 
 
 @register(ElementType.CHECKBOX)
 def render_checkbox(node, props):
     attrs = apply_class_and_style(node, "checkbox")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.input_(_type="checkbox", **(props or {}), **attrs)
 
 
 @register(ElementType.RADIOBUTTON)
 def render_radiobutton(node, props):
     attrs = apply_class_and_style(node, "radiobutton")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.input_(_type="radio", **(props or {}), **attrs)
 
 
 @register(ElementType.DROPDOWN)
 def render_dropdown(node, props):
     attrs = apply_class_and_style(node, "dropdown")
+    attrs = apply_runtime_attrs(node, attrs)
     s = tags.select(**(props or {}), **attrs)
     for opt in (props or {}).get("options", []):
         s.add(tags.option(opt))
@@ -106,6 +123,8 @@ def render_dropdown(node, props):
 @register(ElementType.BUTTON)
 def render_button(node, props):
     attrs = apply_class_and_style(node, "button")
+    attrs = apply_runtime_attrs(node, attrs)
+    attrs.setdefault("type", "button")
     text = (props or {}).get("text", "Submit")
     return tags.button(text, **attrs)
 
@@ -113,18 +132,21 @@ def render_button(node, props):
 @register(ElementType.H1)
 def render_h1(node, props):
     attrs = apply_class_and_style(node, "h1")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.h1((props or {}).get("text", ""), **attrs)
 
 
 @register(ElementType.H2)
 def render_h2(node, props):
     attrs = apply_class_and_style(node, "h2")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.h2((props or {}).get("text", ""), **attrs)
 
 
 @register(ElementType.H3)
 def render_h3(node, props):
     attrs = apply_class_and_style(node, "h3")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.h3((props or {}).get("text", ""), **attrs)
 
 
@@ -133,18 +155,21 @@ def render_a(node, props):
     href = (props or {}).get("href", "#")
     text = (props or {}).get("text", "")
     attrs = apply_class_and_style(node, "a")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.a(text, href=href, **attrs)
 
 
 @register(ElementType.IMG_INPUT)
 def render_img_input(node, props):
     attrs = apply_class_and_style(node, "img-input")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.input_(_type="file", accept="image/*", **(props or {}), **attrs)
 
 
 @register(ElementType.IMG_OUTPUT)
 def render_img_output(node, props):
     attrs = apply_class_and_style(node, "img-output")
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.img(src=(props or {}).get("src", ""), **attrs)
 
 
@@ -160,4 +185,5 @@ def render_container(node, props):
         "style": "; ".join(f"{k}:{v}" for k, v in style.items())
     }
 
+    attrs = apply_runtime_attrs(node, attrs)
     return tags.div(**attrs)

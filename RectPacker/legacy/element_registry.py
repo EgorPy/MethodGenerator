@@ -1,4 +1,4 @@
-from RectPacker.layout.rect_packer import Rect
+from RectPacker.legacy.rect_packer import Rect
 import dominate.tags as tags
 
 registry = {}

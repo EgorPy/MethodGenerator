@@ -25,7 +25,7 @@ children:
               href: "#"
               text: Регистрация
       - type: text_input
-        bind: username
+        bind: email
         props:
           placeholder: user@gmail.com
       - type: text_input
@@ -42,5 +42,7 @@ children:
           - type: checkbox
             bind: remember_me
       - type: button
+        action: submit
+        endpoint: auth.login
         props:
           text: "Отправить"

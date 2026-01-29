@@ -1,7 +1,8 @@
 from RectPacker.layout.node_registry import registry
 from RectPacker.layout.ui_node import UINode
+from core.logger import logger
 
-from dominate.tags import style, link, meta
+from dominate.tags import style, link, meta, script
 from dominate import document
 import os
 
@@ -47,29 +48,31 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
         """
 
         classes = set()
-
-        # базовый класс элемента
+        # element base class
         classes.add(node.type_.value)
 
-        # дополнительные классы
+        # additional classes
         props = node.props or {}
         extra = props.get("class")
         if extra:
             for cls in extra.split():
                 classes.add(cls)
 
-        # проверяем существование css-файлов
+        # check the existence of css files
         for cls in classes:
             css_name = f"{cls}.css"
             if css_name in available_css_files:
                 included_css.add(css_name)
 
-        # рекурсия
+        # recursion
         for child in node.children:
             scan_node_for_css(child)
 
     for node in nodes:
         scan_node_for_css(node)
+
+    logger.info(f"Generating HTML page '{title}'")
+    logger.debug(f"Included CSS modules: {sorted(list(included_css))}")
 
     with doc.head:
         for f in included_css:
@@ -93,14 +96,19 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
             }
         """)
 
+        script(src="../../frontend/web/static/actions.js")
+        script(src="../../frontend/web/static/runtime.js")
+
     with doc:
         for node in nodes:
             doc.add(render_with_children(node))
 
-    return doc.render()
+    html = doc.render()
+    logger.info("HTML generation completed")
+    return html
 
 
 def save_html(path: str, html_text: str):
     with open(path, "w", encoding="utf-8") as f:
         f.write(html_text)
-    print(f"HTML saved: {path}")
+    logger.info(f"HTML saved: {path}")

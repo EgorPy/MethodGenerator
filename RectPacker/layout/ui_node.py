@@ -1,4 +1,4 @@
-from ui_enums import ElementType, Layout, Align, Justify, Action
+from RectPacker.layout.ui_enums import ElementType, Layout, Align, Justify
 
 from typing import Optional, List
 
@@ -27,7 +27,7 @@ class UINode:
             min_width: Optional[int] = None,
 
             bind: Optional[str] = None,  # input/output binding
-            action: Optional[Action] = None,  # submit / click / etc.
+            action: Optional[str] = None,  # submit / click / etc.
             endpoint: Optional[str] = None,  # API endpoint
     ):
         self.type_ = type_
