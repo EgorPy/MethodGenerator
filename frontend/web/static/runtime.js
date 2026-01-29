@@ -1,4 +1,76 @@
 (function () {
+    const STORAGE_KEY = "APP_STATE";
+
+    function loadState() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                return {
+                    form: {},
+                    auth: {
+                        isAuthenticated: false,
+                        token: null,
+                        user: null
+                    },
+                    api: {
+                        lastAction: null,
+                        lastStatus: null,
+                        lastOk: null,
+                        lastError: null,
+                        lastResponse: null
+                    }
+                };
+            }
+            return JSON.parse(raw);
+        } catch {
+            return {
+                form: {},
+                auth: {
+                    isAuthenticated: false,
+                    token: null,
+                    user: null
+                },
+                api: {
+                    lastAction: null,
+                    lastStatus: null,
+                    lastOk: null,
+                    lastError: null,
+                    lastResponse: null
+                }
+            };
+        }
+    }
+
+    function saveState(state) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function getMeta(name) {
+        const el = document.querySelector(`meta[name="${name}"]`);
+        return el ? el.getAttribute("content") : null;
+    }
+
+    function redirectTo(path) {
+        if (!path) return;
+        if (window.location.pathname === path) return;
+        window.location.href = path;
+    }
+
+    function applyRouteGuard(state) {
+        const mode = getMeta("route:auth");
+        const redirect = getMeta("route:redirect");
+
+        if (!mode) return;
+
+        if (mode === "guest" && state.auth.isAuthenticated) {
+            redirectTo(redirect || "/profile");
+        }
+
+        if (mode === "auth" && !state.auth.isAuthenticated) {
+            redirectTo(redirect || "/login");
+        }
+    }
+
     function getValueByBind(bind) {
         const el = document.querySelector(`[data-bind="${bind}"]`);
         if (!el) return undefined;
@@ -29,7 +101,7 @@
         return payload;
     }
 
-    async function callEndpoint(endpointKey) {
+    async function callEndpoint(endpointKey, state) {
         if (!window.ACTIONS) {
             throw new Error("window.ACTIONS is not defined");
         }
@@ -38,6 +110,13 @@
         if (!action) {
             throw new Error(`Unknown endpoint '${endpointKey}'`);
         }
+
+        state.api.lastAction = endpointKey;
+        state.api.lastStatus = "loading";
+        state.api.lastOk = null;
+        state.api.lastError = null;
+        state.api.lastResponse = null;
+        saveState(state);
 
         const method = (action.method || "GET").toUpperCase();
         const url = action.url;
@@ -48,8 +127,12 @@
         const options = {
             method,
             headers: {},
-            credentials: "include",
+            credentials: "include"
         };
+
+        if (state.auth.token) {
+            options.headers["Authorization"] = `Bearer ${state.auth.token}`;
+        }
 
         if (method !== "GET") {
             if (encoding === "json") {
@@ -71,22 +154,53 @@
 
         const data = isJson ? await res.json() : await res.text();
 
+        state.api.lastResponse = data;
+
         if (!res.ok) {
-            throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+            state.api.lastStatus = "error";
+            state.api.lastOk = false;
+            state.api.lastError = typeof data === "string" ? data : JSON.stringify(data);
+            saveState(state);
+            throw new Error(state.api.lastError);
         }
+
+        state.api.lastStatus = "success";
+        state.api.lastOk = true;
+        state.api.lastError = null;
+
+        if (endpointKey === "auth.login") {
+            state.auth.isAuthenticated = true;
+            state.auth.token = data?.token || null;
+        }
+
+        if (endpointKey === "auth.logout") {
+            state.auth.isAuthenticated = false;
+            state.auth.token = null;
+            state.auth.user = null;
+        }
+
+        if (endpointKey === "auth.get_me") {
+            state.auth.user = data;
+        }
+
+        saveState(state);
+
+        applyRouteGuard(state);
 
         return data;
     }
 
-    function bindButtons() {
+    function bindButtons(state) {
         const buttons = document.querySelectorAll("button[data-endpoint]");
         for (const btn of buttons) {
-            btn.addEventListener("click", async () => {
+            btn.addEventListener("click", async (e) => {
+                e.preventDefault();
+
                 const endpoint = btn.getAttribute("data-endpoint");
                 if (!endpoint) return;
 
                 try {
-                    const result = await callEndpoint(endpoint);
+                    const result = await callEndpoint(endpoint, state);
                     console.log("API result:", result);
                 } catch (e) {
                     console.error("API error:", e);
@@ -95,5 +209,13 @@
         }
     }
 
-    document.addEventListener("DOMContentLoaded", bindButtons);
+    function init() {
+        const state = loadState();
+        window.STATE = state;
+
+        applyRouteGuard(state);
+        bindButtons(state);
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
 })();
