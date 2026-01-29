@@ -1,8 +1,8 @@
+from RectPacker.layout.ui_node import UINode, ElementType
 from RectPacker.layout.node_registry import registry
-from RectPacker.layout.ui_node import UINode
 from core.logger import logger
 
-from dominate.tags import style, link, meta, script
+from dominate.tags import style, link, meta, script, div, form
 from dominate import document
 import os
 
@@ -22,6 +22,20 @@ def render_with_children(node: UINode):
         raise ValueError(f"No renderer for type '{node.type_}'")
 
     tag = renderer(node, node.props)
+
+    input_children = any(
+        child.type_ in {
+            ElementType.TEXT_INPUT,
+            ElementType.CHECKBOX,
+            ElementType.RADIOBUTTON,
+            ElementType.DROPDOWN,
+            ElementType.IMG_INPUT,
+        } for child in node.children
+    )
+    if input_children and node.type_ != ElementType.CONTAINER:
+        f = form()
+        f.add(tag)
+        tag = f
 
     for child in node.children:
         tag.add(render_with_children(child))
@@ -100,6 +114,8 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
         script(src="../../frontend/web/static/runtime.js")
 
     with doc:
+        doc.add(div("", **{"data-ui": "error", "style": "display:none; color:red;"}))
+
         for node in nodes:
             doc.add(render_with_children(node))
 
