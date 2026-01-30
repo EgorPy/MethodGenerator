@@ -29,10 +29,7 @@
             return el.value;
         }
 
-        if (tag === "select") {
-            return el.value;
-        }
-
+        if (tag === "select") return el.value;
         return el.value;
     }
 
@@ -71,15 +68,15 @@
         const payload = collectPayload(action);
 
         const options = { method, headers: {}, credentials: "include" };
-
         if (method !== "GET") {
             if (encoding === "json") {
                 options.headers["Content-Type"] = "application/json";
                 options.body = JSON.stringify(payload);
-            } else {
-                const form = new FormData();
-                for (const [k, v] of Object.entries(payload)) if (v !== undefined) form.append(k, v);
-                options.body = form;
+            } else if (encoding === "form") {
+                const formBody = new URLSearchParams();
+                for (const [k, v] of Object.entries(payload)) if (v !== undefined) formBody.append(k, v);
+                options.headers["Content-Type"] = "application/x-www-form-urlencoded";
+                options.body = formBody.toString();
             }
         }
 
@@ -95,33 +92,13 @@
         }
 
         if (!res.ok) {
-            let message = "Request failed";
-
-            if (res.status === 404) message = "Not found (404)";
-            else if (res.status === 401) message = "Unauthorized (401)";
-            else if (res.status === 403) message = "Forbidden (403)";
-            else if (res.status >= 500) message = "Server error. Try again later.";
-
-            if (isJson && data && typeof data.error === "string") {
-                message = data.error;
-            }
-
+            let message = "Unknown error";
+            if (isJson && data && typeof data.error === "string") message = data.error;
+            else if (typeof data === "string") message = data;
             throw new Error(message);
         }
 
         return data;
-    }
-
-    function applyRedirectRules(endpointKey, result) {
-        if (endpointKey === "auth.login") return "/profile";
-        if (endpointKey === "auth.register") return "/profile";
-        if (endpointKey === "auth.logout") return "/";
-
-        if (result && typeof result === "object" && typeof result.redirect === "string") {
-            return result.redirect;
-        }
-
-        return null;
     }
 
     function applyState(endpointKey, result) {
@@ -129,8 +106,8 @@
         STATE.lastResult = result;
         STATE.lastError = null;
 
-        const redirect = applyRedirectRules(endpointKey, result);
-        STATE.redirectTo = redirect;
+        const action = window.ACTIONS[endpointKey];
+        STATE.redirectTo = (action && action.redirectOnSuccess) || (result && result.redirect) || null;
     }
 
     function applyError(endpointKey, error) {
@@ -159,9 +136,7 @@
 
     function renderLoading() {
         const loadingEls = document.querySelectorAll(`[data-ui="loading"], [data-show="loading"]`);
-        for (const el of loadingEls) {
-            setVisible(el, STATE.loading);
-        }
+        for (const el of loadingEls) setVisible(el, STATE.loading);
     }
 
     function renderShowRules() {
@@ -182,9 +157,7 @@
         for (const el of els) {
             const path = el.getAttribute("data-text");
             const value = getByPath(STATE, path);
-
-            if (value === undefined || value === null) el.textContent = "";
-            else el.textContent = String(value);
+            el.textContent = value === undefined || value === null ? "" : String(value);
         }
     }
 
@@ -197,25 +170,18 @@
             const tag = (el.tagName || "").toLowerCase();
             const type = (el.getAttribute("type") || "").toLowerCase();
 
-            if (tag === "input" && type === "checkbox") {
-                el.checked = !!value;
-            } else if ("value" in el) {
-                el.value = value === undefined || value === null ? "" : String(value);
-            }
+            if (tag === "input" && type === "checkbox") el.checked = !!value;
+            else if ("value" in el) el.value = value === undefined || value === null ? "" : String(value);
         }
     }
 
     function renderButtonsDisabled() {
         const buttons = document.querySelectorAll("button[data-endpoint]");
-        for (const btn of buttons) {
-            btn.disabled = STATE.loading;
-        }
+        for (const btn of buttons) btn.disabled = STATE.loading;
     }
 
     function renderRedirect() {
-        if (STATE.redirectTo) {
-            window.location.href = STATE.redirectTo;
-        }
+        if (STATE.redirectTo) window.location.href = STATE.redirectTo;
     }
 
     function render() {
@@ -229,17 +195,31 @@
     }
 
     async function runAction(endpointKey) {
-        STATE.loading = true;
-        render();
-
         try {
+            const action = window.ACTIONS[endpointKey];
+            if (!action) throw new Error(`Unknown endpoint '${endpointKey}'`);
+
+            const payload = collectPayload(action);
+
+            const emptyFields = Object.entries(payload).filter(([k, v]) => v === undefined || v === "");
+            if (emptyFields.length) {
+                applyError(endpointKey, `Please fill in: ${emptyFields.map(f => f[0]).join(", ")}`);
+                render();
+                return;
+            }
+
             const result = await callEndpoint(endpointKey);
-            applyState(endpointKey, result);
+
+            // check HTTP code via result.code or fallback to redirectOnSuccess
+            if ((result && result.code >= 200 && result.code < 300) || (action && action.redirectOnSuccess)) {
+                applyState(endpointKey, result);
+            } else {
+                applyError(endpointKey, result && result.error ? result.error : "Unknown error");
+            }
         } catch (e) {
             applyError(endpointKey, e);
         }
 
-        STATE.loading = false;
         render();
     }
 
@@ -259,8 +239,5 @@
         render();
     });
 
-    window.__UIRUNTIME__ = {
-        STATE,
-        runAction,
-    };
+    window.__UIRUNTIME__ = { STATE, runAction };
 })();

@@ -7,7 +7,7 @@ window.ACTIONS = {
             "email",
             "password"
         ],
-        "encoding": "json"
+        "encoding": "form"
     },
     "auth.register": {
         "method": "POST",
@@ -20,7 +20,7 @@ window.ACTIONS = {
             "email",
             "password"
         ],
-        "encoding": "json"
+        "encoding": "form"
     },
     "auth.logout": {
         "method": "GET",

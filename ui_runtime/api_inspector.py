@@ -1,7 +1,12 @@
 from .action_model import ActionModel
 from fastapi.routing import APIRoute
+from fastapi import FastAPI, params
 from core.logger import logger
-from fastapi import FastAPI
+
+
+def is_form_param(p):
+    # field_info - это объект fastapi.params.Form / Body / etc
+    return isinstance(p.field_info, params.Form)
 
 
 def inspect_app(app: FastAPI, service_id: str) -> list[ActionModel]:
@@ -27,11 +32,7 @@ def inspect_app(app: FastAPI, service_id: str) -> list[ActionModel]:
         payload = [p.name for p in route.dependant.body_params]
 
         # Determine encoding: 'form' if any default comes from Form(), else 'json'
-        encoding = "form" if any(
-            getattr(p.default, "__class__", None).__module__ == "fastapi.params"
-            and getattr(p.default, "__class__", None).__name__ == "Form"
-            for p in route.dependant.body_params
-        ) else "json"
+        encoding = "form" if any(is_form_param(p) for p in route.dependant.body_params) else "json"
 
         action = ActionModel(
             id_=action_id,
