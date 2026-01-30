@@ -53,27 +53,37 @@ def apply_class_and_style(node, default_class: str):
     - merges default class with optional extra class from props
     - applies inline styles from props['style']
     - applies width / height from node if not overridden
+    - applies any other props as attributes
     """
 
     props = node.props or {}
 
+    # style
     style = dict(props.get("style", {}))
-
     if getattr(node, "width", None) is not None:
         style.setdefault("width", f"{node.width}px")
-
     if getattr(node, "height", None) is not None:
         style.setdefault("height", f"{node.height}px")
 
+    # class
     extra_class = props.get("class")
     classes = default_class
     if extra_class:
         classes = f"{default_class} {extra_class}"
 
-    return {
+    # build attributes
+    attrs = {
         "_class": classes,
         "style": "; ".join(f"{k}:{v}" for k, v in style.items())
     }
+
+    # add any other props as attributes (excluding style/class)
+    for k, v in props.items():
+        if k not in ("style", "class"):
+            # convert underscore-prefixed keys for dominate if needed
+            attrs[k.replace("_", "-")] = v
+
+    return attrs
 
 
 def apply_runtime_attrs(node: UINode, attrs: dict) -> dict:
@@ -93,28 +103,28 @@ def apply_runtime_attrs(node: UINode, attrs: dict) -> dict:
 def render_text_input(node, props):
     attrs = apply_class_and_style(node, "text-input")
     attrs = apply_runtime_attrs(node, attrs)
-    return tags.input_(_type="text", **(props or {}), **attrs)
+    return tags.input_(_type="text", **attrs)
 
 
 @register(ElementType.CHECKBOX)
 def render_checkbox(node, props):
     attrs = apply_class_and_style(node, "checkbox")
     attrs = apply_runtime_attrs(node, attrs)
-    return tags.input_(_type="checkbox", **(props or {}), **attrs)
+    return tags.input_(**attrs)
 
 
 @register(ElementType.RADIOBUTTON)
 def render_radiobutton(node, props):
     attrs = apply_class_and_style(node, "radiobutton")
     attrs = apply_runtime_attrs(node, attrs)
-    return tags.input_(_type="radio", **(props or {}), **attrs)
+    return tags.input_(**attrs)
 
 
 @register(ElementType.DROPDOWN)
 def render_dropdown(node, props):
     attrs = apply_class_and_style(node, "dropdown")
     attrs = apply_runtime_attrs(node, attrs)
-    s = tags.select(**(props or {}), **attrs)
+    s = tags.select(**attrs)
     for opt in (props or {}).get("options", []):
         s.add(tags.option(opt))
     return s
@@ -156,7 +166,7 @@ def render_a(node, props):
     text = (props or {}).get("text", "")
     attrs = apply_class_and_style(node, "a")
     attrs = apply_runtime_attrs(node, attrs)
-    return tags.a(text, href=href, **attrs)
+    return tags.a(text, **attrs)
 
 
 @register(ElementType.IMG_INPUT)
@@ -170,7 +180,7 @@ def render_img_input(node, props):
 def render_img_output(node, props):
     attrs = apply_class_and_style(node, "img-output")
     attrs = apply_runtime_attrs(node, attrs)
-    return tags.img(src=(props or {}).get("src", ""), **attrs)
+    return tags.img(**attrs)
 
 
 @register(ElementType.CONTAINER)

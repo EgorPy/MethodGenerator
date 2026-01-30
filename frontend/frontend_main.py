@@ -3,14 +3,15 @@
 from core.config import config
 from core.logger import logger
 
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
 from fastapi import FastAPI, Request
 from pathlib import Path
 import webbrowser
 import threading
 import uvicorn
+import jinja2
 
 app = FastAPI()
 
@@ -56,7 +57,10 @@ async def page_404(request, __):
     """ Pretty error 404 page """
 
     logger.info(f"404 status for: {request.url.path}")
-    return templates.TemplateResponse("page404.html", {"request": request})
+    try:
+        return templates.TemplateResponse("page404.html", {"request": request})
+    except jinja2.exceptions.TemplateNotFound:
+        return PlainTextResponse("404 Not Found", status_code=404)
 
 
 def start_server():

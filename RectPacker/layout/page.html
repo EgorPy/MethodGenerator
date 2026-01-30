@@ -2,14 +2,14 @@
 <html>
   <head>
     <title>Generated UI</title>
-    <link href="../../frontend/web/static/text_input.css" rel="stylesheet">
-    <link href="../../frontend/web/static/container.css" rel="stylesheet">
+    <link href="../../frontend/web/static/a.css" rel="stylesheet">
+    <link href="../../frontend/web/static/gray-text.css" rel="stylesheet">
+    <link href="../../frontend/web/static/checkbox.css" rel="stylesheet">
     <link href="../../frontend/web/static/button.css" rel="stylesheet">
     <link href="../../frontend/web/static/h1.css" rel="stylesheet">
-    <link href="../../frontend/web/static/gray-text.css" rel="stylesheet">
+    <link href="../../frontend/web/static/text_input.css" rel="stylesheet">
     <link href="../../frontend/web/static/h3.css" rel="stylesheet">
-    <link href="../../frontend/web/static/a.css" rel="stylesheet">
-    <link href="../../frontend/web/static/checkbox.css" rel="stylesheet">
+    <link href="../../frontend/web/static/container.css" rel="stylesheet">
     <link href="../../frontend/web/static\style.css" rel="stylesheet">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta charset="UTF-8">
@@ -32,19 +32,20 @@
   </head>
   <body>
     <div class="container" style="">
+      <h3 class="h3" data-ui="error" style="display:none; color:red"></h3>
       <div class="container" style="display:flex; flex-direction:column; gap:12px">
-        <h1 class="h1" style="">Вход</h1>
+        <h1 class="h1" style="" text="Вход">Вход</h1>
         <div class="container" style="display:flex; flex-direction:row">
-          <h3 class="h3 gray-text" style="">Нет аккаунта?</h3>
-          <a class="a" href="#" style="">Регистрация</a>
+          <h3 class="h3 gray-text" style="" text="Нет аккаунта?">Нет аккаунта?</h3>
+          <a class="a" href="#" style="" text="Регистрация">Регистрация</a>
         </div>
         <input class="text-input" data-bind="email" placeholder="user@gmail.com" style="" type="text">
         <input class="text-input" data-bind="password" placeholder="Пароль" style="" type="password">
         <div class="container" style="display:flex; flex-direction:row">
-          <h3 class="h3" style="">Сосал?</h3>
-          <input class="checkbox" data-bind="remember_me" style="" type="checkbox">
+          <h3 class="h3" style="" text="Сосал?">Сосал?</h3>
+          <input class="checkbox" data-bind="remember_me" style="">
         </div>
-        <button class="button" data-action="submit" data-endpoint="auth.login" style="" type="button">Отправить</button>
+        <button class="button" data-action="submit" data-endpoint="auth.login" style="" text="Отправить" type="button">Отправить</button>
       </div>
     </div>
   </body>

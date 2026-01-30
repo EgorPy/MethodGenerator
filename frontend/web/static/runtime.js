@@ -37,49 +37,43 @@
     }
 
     async function callEndpoint(endpointKey) {
-        if (!window.ACTIONS) {
-            throw new Error("window.ACTIONS is not defined");
-        }
-
+        if (!window.ACTIONS) throw new Error("window.ACTIONS is not defined");
         const action = window.ACTIONS[endpointKey];
-        if (!action) {
-            throw new Error(`Unknown endpoint '${endpointKey}'`);
-        }
+        if (!action) throw new Error(`Unknown endpoint '${endpointKey}'`);
 
         const method = (action.method || "GET").toUpperCase();
         const url = action.url;
         const encoding = action.encoding || "json";
-
         const payload = collectPayload(action);
 
-        const options = {
-            method,
-            headers: {},
-            credentials: "include",
-        };
-
+        const options = { method, headers: {}, credentials: "include" };
         if (method !== "GET") {
             if (encoding === "json") {
                 options.headers["Content-Type"] = "application/json";
                 options.body = JSON.stringify(payload);
             } else {
                 const form = new FormData();
-                for (const [k, v] of Object.entries(payload)) {
-                    if (v !== undefined) form.append(k, v);
-                }
+                for (const [k, v] of Object.entries(payload)) if (v !== undefined) form.append(k, v);
                 options.body = form;
             }
         }
 
         const res = await fetch(url, options);
-
         const contentType = res.headers.get("content-type") || "";
         const isJson = contentType.includes("application/json");
+        let data;
 
-        const data = isJson ? await res.json() : await res.text();
+        try {
+            data = isJson ? await res.json() : await res.text();
+        } catch {
+            data = null;
+        }
 
         if (!res.ok) {
-            throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+            let message = "Unknown error";
+            if (isJson && data && typeof data.error === "string") message = data.error;
+            else if (typeof data === "string") message = "404 not found";
+            throw new Error(message);
         }
 
         return data;

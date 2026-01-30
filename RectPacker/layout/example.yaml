@@ -2,6 +2,12 @@ type: container
 props:
   center_x: true
 children:
+  - type: h3
+    props:
+      data-ui: error
+      style:
+        display: none
+        color: red
   - type: container
     width: 600
     height: 420

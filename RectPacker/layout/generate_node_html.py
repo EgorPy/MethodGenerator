@@ -114,8 +114,6 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
         script(src="../../frontend/web/static/runtime.js")
 
     with doc:
-        doc.add(div("", **{"data-ui": "error", "style": "display:none; color:red;"}))
-
         for node in nodes:
             doc.add(render_with_children(node))
 
