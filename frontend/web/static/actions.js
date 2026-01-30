@@ -8,7 +8,7 @@ window.ACTIONS = {
             "password"
         ],
         "encoding": "form",
-        "redirectOnSuccess": "self"
+        "redirectOnSuccess": "/profile"
     },
     "auth.register": {
         "method": "POST",

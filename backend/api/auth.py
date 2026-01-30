@@ -10,6 +10,7 @@ import sqlite3
 from backend.logic.auth_logic import AuthLogic
 
 from core.method_generator import AutoDB, ConnectionManager
+from core.redirects import redirect_on_success
 from core.config import config
 from core.logger import logger
 
@@ -17,6 +18,7 @@ router = APIRouter()
 cm = ConnectionManager()
 
 
+@redirect_on_success("/profile")
 @router.post("/login/", status_code=status.HTTP_200_OK)
 async def login(
         email: Annotated[str, Form(min_length=5, max_length=256,
