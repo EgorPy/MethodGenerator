@@ -2,14 +2,15 @@ from RectPacker.layout.ui_node import UINode, ElementType
 from RectPacker.layout.node_registry import registry
 from core.logger import logger
 
-from dominate.tags import style, link, meta, script, div, form
+from dominate.tags import style, link, meta, script, form
 from dominate import document
 import os
 
 # TODO: Add logging
 # TODO: All directories move to configs
 
-CSS_DIR = "../../frontend/web/static"  # directory with CSS modules
+HTML_DIR = None
+STATIC_DIR = None
 
 
 def render_with_children(node: UINode):
@@ -43,15 +44,30 @@ def render_with_children(node: UINode):
     return tag
 
 
-def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI"):
+def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI", output_path: str = None):
     """
     HTML page generation from a list of root UINode's.
     Automatically includes CSS files for element types if they exist.
+
+    output_path: path where HTML will be saved. Используется для вычисления относительных путей.
     """
+
+    global HTML_DIR, STATIC_DIR
 
     doc = document(title=title)
 
-    available_css_files = set(f for f in os.listdir(CSS_DIR) if f.endswith(".css"))
+    if output_path:
+        HTML_DIR = os.path.dirname(os.path.abspath(output_path))
+    else:
+        HTML_DIR = os.getcwd()
+
+    STATIC_DIR = os.path.normpath(os.path.join(HTML_DIR, "..", "static"))
+
+    def relative_static_path(filename: str) -> str:
+        """ Returns path to static file relative to HTML_DIR """
+        return os.path.relpath(os.path.join(STATIC_DIR, filename), HTML_DIR).replace("\\", "/")
+
+    available_css_files = set(f for f in os.listdir(STATIC_DIR) if f.endswith(".css"))
     included_css = set()
 
     def scan_node_for_css(node: UINode):
@@ -90,11 +106,13 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
 
     with doc.head:
         for f in included_css:
-            link(rel="stylesheet", href=f"../../frontend/web/static/{f}")
+            link(rel="stylesheet", href=relative_static_path(f))
 
-        link(rel="stylesheet", href=os.path.join(CSS_DIR, "style.css"))
+        link(rel="stylesheet", href=relative_static_path("style.css"))
+
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         meta(charset="UTF-8")
+
         style("""
             html, body {
                 margin: 0;
@@ -110,8 +128,9 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI")
             }
         """)
 
-        script(src="../../frontend/web/static/actions.js")
-        script(src="../../frontend/web/static/runtime.js")
+        script(type="module", src=relative_static_path("config.js"))
+        script(src=relative_static_path("actions.js"))
+        script(src=relative_static_path("runtime.js"))
 
     with doc:
         for node in nodes:

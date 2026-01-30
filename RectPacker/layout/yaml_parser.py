@@ -4,6 +4,7 @@ from RectPacker.layout.ui_node import UINode
 
 from typing import Any, Callable, List, Optional, Dict
 import yaml
+import os
 
 
 def load_yaml(path: str) -> dict:
@@ -126,17 +127,27 @@ def parse_ui_yaml(path: str, validate: bool = True) -> UINode:
     return root
 
 
-def generate_html_from_yaml(path: str, html_path: str, screen_width: int = 1536,
-                            screen_height: int = 864, validate: bool = True):
+def generate_html_from_yaml(yaml_path: str, html_path: str, validate: bool = True):
     """
     Loads YAML → parses → validates → generates HTML and saves it.
+    Automatically computes correct paths for CSS/JS.
     """
-    root_node = parse_ui_yaml(path, validate=validate)
 
-    html_text = generate_page_from_ui_tree([root_node])
+    root_node = parse_ui_yaml(yaml_path, validate=validate)
+
+    html_path = os.path.abspath(html_path)
+
+    html_text = generate_page_from_ui_tree([root_node], output_path=html_path)
+
+    html_dir = os.path.dirname(html_path)
+    os.makedirs(html_dir, exist_ok=True)
 
     save_html(html_path, html_text)
     print(f"HTML successfully created: {html_path}")
 
 
-generate_html_from_yaml("example.yaml", "page.html")
+if __name__ == "__main__":
+    yaml_file = "example.yaml"
+    html_file = "../../frontend/web/pages/page.html"
+
+    generate_html_from_yaml(yaml_file, html_file)

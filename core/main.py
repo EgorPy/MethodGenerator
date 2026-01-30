@@ -33,7 +33,7 @@ def run_linux():
         logger.info(f"Running: {cmd}")
         os.system(cmd)
 
-    logger.info("All services started in background (nohup).")
+    logger.info("All services launched.")
     logger.info("Logs: *.out files in current directory.")
 
 
@@ -70,7 +70,7 @@ def run_windows(new_console: bool = True):
         time.sleep(0.5)
         start_windows(system, new_console)
 
-    logger.info("All Windows services launched.")
+    logger.info("All services launched.")
 
 
 def run():

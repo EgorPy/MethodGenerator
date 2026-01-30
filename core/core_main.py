@@ -1,6 +1,6 @@
 """ Run core """
 
-from config_generator import generate_frontend_config
+from generate_config_js import generate_config_js
 from service_loader import poll_tasks
 from registry import TASKS
 from logger import logger
@@ -16,7 +16,7 @@ async def run():
 
     logger.info("=== Core system started ===")
 
-    generate_frontend_config()
+    generate_config_js()
 
     if TASKS:
         for service in TASKS.keys():

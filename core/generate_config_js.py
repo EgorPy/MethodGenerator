@@ -5,7 +5,7 @@ from logger import logger
 import os
 
 
-def generate_frontend_config():
+def generate_config_js():
     """ Generate config.js for frontend only if it does not already exist """
 
     target_path = os.path.join(
@@ -22,7 +22,7 @@ def generate_frontend_config():
 
     backend_url = f"http://{config.DOMAIN}:{config.BACKEND_PORT}"
 
-    js_content = f'export const BACKEND_URL = "{backend_url}";\n'
+    js_content = f'export const BACKEND_URL = "{backend_url}";\n\nwindow.BACKEND_URL = BACKEND_URL;\n'
 
     os.makedirs(os.path.dirname(target_path), exist_ok=True)
 
