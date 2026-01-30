@@ -1,0 +1,15 @@
+type: container
+layout: vertical
+children:
+- type: text_input
+  bind: email
+  props:
+    placeholder: email
+- type: text_input
+  bind: password
+  props:
+    placeholder: password
+- type: button
+  action: auth.login
+  props:
+    text: Submit

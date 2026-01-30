@@ -13,6 +13,9 @@ import threading
 import uvicorn
 import jinja2
 
+import traceback
+import sys
+
 app = FastAPI()
 
 
@@ -97,5 +100,12 @@ def run():
     server_thread.join()
 
 
-if __name__ == '__main__':
-    run()
+if __name__ == "__main__":
+    try:
+        run()
+    except Exception:
+        logger.error("Unhandled exception in core system:")
+        traceback.print_exc()
+        print("\nPress Enter to exit...")
+        input()
+        sys.exit(1)

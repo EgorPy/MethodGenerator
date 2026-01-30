@@ -1,4 +1,4 @@
-from RectPacker.layout.ui_enums import ElementType, Layout, Align, Justify
+from core.html_generation.ui_enums import ElementType, Layout, Align, Justify
 
 from typing import Optional, List
 

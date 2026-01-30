@@ -1,7 +1,7 @@
 window.ACTIONS = {
     "auth.login": {
         "method": "POST",
-        "url": "/auth/login/",
+        "url": "/login/",
         "serviceId": "auth",
         "payload": [
             "email",
@@ -12,7 +12,7 @@ window.ACTIONS = {
     },
     "auth.register": {
         "method": "POST",
-        "url": "/auth/register/",
+        "url": "/register/",
         "serviceId": "auth",
         "payload": [
             "first_name",
@@ -26,7 +26,7 @@ window.ACTIONS = {
     },
     "auth.logout": {
         "method": "GET",
-        "url": "/auth/logout/",
+        "url": "/logout/",
         "serviceId": "auth",
         "payload": [],
         "encoding": "json",
@@ -34,7 +34,7 @@ window.ACTIONS = {
     },
     "auth.get_me": {
         "method": "GET",
-        "url": "/auth/me",
+        "url": "/me",
         "serviceId": "auth",
         "payload": [],
         "encoding": "json",

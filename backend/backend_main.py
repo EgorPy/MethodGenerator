@@ -3,14 +3,15 @@
 from core.config import config
 from core.logger import logger
 
-from api.auth import router as auth_router
+from backend.services.auth.api.auth import router as auth_router
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-import threading
 import uvicorn
 import logging
 
+import traceback
+import sys
 
 app = FastAPI()
 
@@ -45,5 +46,12 @@ def run():
     # server_thread.join()
 
 
-if __name__ == '__main__':
-    run()
+if __name__ == "__main__":
+    try:
+        run()
+    except Exception:
+        logger.error("Unhandled exception in core system:")
+        traceback.print_exc()
+        print("\nPress Enter to exit...")
+        input()
+        sys.exit(1)

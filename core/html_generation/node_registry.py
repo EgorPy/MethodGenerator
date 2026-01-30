@@ -1,5 +1,5 @@
-from RectPacker.layout.ui_enums import ElementType, Justify, Layout, Align
-from RectPacker.layout.ui_node import UINode
+from core.html_generation.ui_enums import ElementType, Justify, Layout, Align
+from core.html_generation.ui_node import UINode
 from dominate import tags
 
 registry = {}

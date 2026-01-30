@@ -32,4 +32,4 @@ def generate_actions_js(actions: list, output_path: str):
     path.write_text(js_content, encoding="utf-8")
 
     logger.info(f"actions.js generated for {len(actions)} actions")
-    logger.info(f"File path: {path}")
+    logger.info(f"file path: {path}")

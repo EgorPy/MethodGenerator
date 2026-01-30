@@ -1,4 +1,4 @@
-from ..layout.generate_html import generate_page, save_html
+from core.html_generation import generate_page, save_html
 
 # Здесь могли бы подключаться Rect и layout-алгоритмы, если нужно.
 

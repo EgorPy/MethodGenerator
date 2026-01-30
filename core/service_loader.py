@@ -1,45 +1,22 @@
-"""
-Abstract pipeline to connect and manage independent services (business logic)
-"""
-
-from registry import TASKS
-from config import config
-from logger import logger
-from task import Task
-
+from core.registry import get_registered_services
+from core.logger import logger
 import asyncio
 
 
-async def process_task(task: Task, payload):
-    """ Processes generic task """
-
-    logger.debug(f"Processing task: {task.name} | payload={payload}")
-
-    task.set_status(payload, "processing")
-
-    try:
-        result = await task.process(payload)
-        task.save_result(payload, result)
-        task.set_status(payload, "waiting")
-        logger.info(f"Task '{task.name}' processed, waiting for user delivery")
-    except Exception as e:
-        logger.error(f"Task '{task.name}' failed: {e}")
-        task.set_status(payload, "error")
-
-
 async def poll_tasks():
-    """
-    Periodically checks all task types for pending jobs and processes them.
-    """
+    TASKS = get_registered_services()
+    if not TASKS:
+        logger.warning("No services loaded")
+        return
 
     logger.info("Task polling started")
 
     while True:
-        for task in TASKS.values():
-            payload = task.db_fetch()
-
-            if payload:
-                logger.info(f"Task '{task.name}' has work: {payload}")
-                asyncio.create_task(process_task(task, payload))
-
-        await asyncio.sleep(int(config.REQUEST_INTERVAL))
+        for task_name, task in TASKS.items():
+            try:
+                payload = getattr(task, "db_fetch", lambda: None)()
+                if payload:
+                    logger.info(f"Task '{task_name}' fetched {len(payload)} items")
+            except Exception as e:
+                logger.error(f"Error polling task '{task_name}': {e}")
+        await asyncio.sleep(5)

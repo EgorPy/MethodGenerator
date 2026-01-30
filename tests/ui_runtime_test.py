@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from backend.api import auth
-from ui_runtime.api_inspector import inspect_app
-from ui_runtime.generate_actions_js import generate_actions_js
+from backend.services.auth.api import auth
+from core.actions_generation.api_inspector import inspect_app
+from core.actions_generation.generate_actions_js import generate_actions_js
 from core.logger import logger
 
 logger.info("=== Generating actions.js for frontend ===")

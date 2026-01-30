@@ -1,6 +1,8 @@
-from RectPacker.layout.generate_node_html import generate_page_from_ui_tree, save_html
-from RectPacker.layout.ui_enums import ElementType, Layout, Align, Justify
-from RectPacker.layout.ui_node import UINode
+""" YAML to HTML parser """
+
+from core.html_generation.generate_node_html import generate_page_from_ui_tree, save_html
+from core.html_generation.ui_enums import ElementType, Layout, Align, Justify
+from core.html_generation.ui_node import UINode
 
 from typing import Any, Callable, List, Optional, Dict
 import yaml

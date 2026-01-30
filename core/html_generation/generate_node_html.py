@@ -1,5 +1,5 @@
-from RectPacker.layout.ui_node import UINode, ElementType
-from RectPacker.layout.node_registry import registry
+from core.html_generation.ui_node import UINode, ElementType
+from core.html_generation.node_registry import registry
 from core.logger import logger
 
 from dominate.tags import style, link, meta, script, form

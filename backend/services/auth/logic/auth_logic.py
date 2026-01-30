@@ -1,6 +1,6 @@
 """ Authentication, authorization, registration logic """
 
-from ..security import verify_password, hash_password
+from backend.services.auth.logic.security import verify_password, hash_password
 
 from core.method_generator import AutoDB
 from core.config import config

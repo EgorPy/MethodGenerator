@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional
 import sqlite3
 
-from backend.logic.auth_logic import AuthLogic
+from backend.services.auth.logic.auth_logic import AuthLogic
 
 from core.method_generator import AutoDB, ConnectionManager
 from core.redirects import redirect_on_success
