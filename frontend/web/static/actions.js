@@ -2,17 +2,18 @@ window.ACTIONS = {
     "auth.login": {
         "method": "POST",
         "url": "/auth/login/",
-        "service_id": "auth",
+        "serviceId": "auth",
         "payload": [
             "email",
             "password"
         ],
-        "encoding": "form"
+        "encoding": "form",
+        "redirectOnSuccess": "self"
     },
     "auth.register": {
         "method": "POST",
         "url": "/auth/register/",
-        "service_id": "auth",
+        "serviceId": "auth",
         "payload": [
             "first_name",
             "last_name",
@@ -20,20 +21,23 @@ window.ACTIONS = {
             "email",
             "password"
         ],
-        "encoding": "form"
+        "encoding": "form",
+        "redirectOnSuccess": "self"
     },
     "auth.logout": {
         "method": "GET",
         "url": "/auth/logout/",
-        "service_id": "auth",
+        "serviceId": "auth",
         "payload": [],
-        "encoding": "json"
+        "encoding": "json",
+        "redirectOnSuccess": "self"
     },
     "auth.get_me": {
         "method": "GET",
         "url": "/auth/me",
-        "service_id": "auth",
+        "serviceId": "auth",
         "payload": [],
-        "encoding": "json"
+        "encoding": "json",
+        "redirectOnSuccess": "self"
     }
 };

@@ -5,7 +5,6 @@ from core.logger import logger
 
 
 def is_form_param(p):
-    # field_info - это объект fastapi.params.Form / Body / etc
     return isinstance(p.field_info, params.Form)
 
 
@@ -28,11 +27,10 @@ def inspect_app(app: FastAPI, service_id: str) -> list[ActionModel]:
         func_name = route.endpoint.__name__
         action_id = f"{service_id}.{func_name}"
 
-        # Collect payload from body parameters
         payload = [p.name for p in route.dependant.body_params]
-
-        # Determine encoding: 'form' if any default comes from Form(), else 'json'
         encoding = "form" if any(is_form_param(p) for p in route.dependant.body_params) else "json"
+
+        redirect_on_success = getattr(route.endpoint, "__redirect_on_success__", "self")
 
         action = ActionModel(
             id_=action_id,
@@ -40,8 +38,10 @@ def inspect_app(app: FastAPI, service_id: str) -> list[ActionModel]:
             url=url,
             method=method,
             payload=payload,
-            encoding=encoding
+            encoding=encoding,
+            redirect_on_success=redirect_on_success
         )
+
         actions.append(action)
         logger.debug(f"Added Action: {action_id}: {method} {url} with payload {payload}")
 

@@ -7,6 +7,16 @@
         loading: false,
     };
 
+    const ERROR_MESSAGES = {
+        400: "Неверные данные. Пожалуйста, проверьте форму",
+        401: "Неверный логин или пароль",
+        403: "Доступ запрещён",
+        404: "Сервис не найден",
+        422: "Неверный формат данных",
+        500: "Внутренняя ошибка сервера",
+        "default": "Произошла неизвестная ошибка"
+    };
+
     function buildUrl(actionUrl) {
         const base = String(window.BACKEND_URL || "").replace(/\/$/, "");
         const path = String(actionUrl || "");
@@ -57,6 +67,29 @@
         return cur;
     }
 
+    function extractErrorMessage(data, fallback) {
+        if (!data) return fallback;
+
+        if (typeof data === "string" && data.trim()) return data;
+
+        if (typeof data === "object") {
+            if (typeof data.error === "string" && data.error.trim()) return data.error;
+            if (typeof data.message === "string" && data.message.trim()) return data.message;
+
+            if (typeof data.detail === "string" && data.detail.trim()) return data.detail;
+
+            if (Array.isArray(data.detail)) {
+                const msgs = data.detail
+                    .map(x => (x && typeof x.msg === "string" ? x.msg : null))
+                    .filter(Boolean);
+
+                if (msgs.length) return msgs.join(", ");
+            }
+        }
+
+        return fallback;
+    }
+
     async function callEndpoint(endpointKey) {
         if (!window.ACTIONS) throw new Error("window.ACTIONS is not defined");
         const action = window.ACTIONS[endpointKey];
@@ -92,22 +125,23 @@
         }
 
         if (!res.ok) {
-            let message = "Unknown error";
-            if (isJson && data && typeof data.error === "string") message = data.error;
-            else if (typeof data === "string") message = data;
-            throw new Error(message);
+            const err = new Error();
+            err.status = res.status;
+            err.data = data;
+            throw err;
         }
 
         return data;
     }
 
+
     function applyState(endpointKey, result) {
         STATE.lastAction = endpointKey;
-        STATE.lastResult = result;
+        STATE.lastResult = result && result.data !== undefined ? result.data : result;
         STATE.lastError = null;
 
         const action = window.ACTIONS[endpointKey];
-        STATE.redirectTo = (action && action.redirectOnSuccess) || (result && result.redirect) || null;
+        STATE.redirectTo = (action && action.redirectOnSuccess) ? action.redirectOnSuccess : "self";
     }
 
     function applyError(endpointKey, error) {
@@ -181,7 +215,14 @@
     }
 
     function renderRedirect() {
-        if (STATE.redirectTo) window.location.href = STATE.redirectTo;
+        if (!STATE.redirectTo) return;
+
+        if (STATE.redirectTo === "self") {
+            window.location.href = window.location.pathname;
+            return;
+        }
+
+        window.location.href = STATE.redirectTo;
     }
 
     function render() {
@@ -200,24 +241,22 @@
             if (!action) throw new Error(`Unknown endpoint '${endpointKey}'`);
 
             const payload = collectPayload(action);
-
             const emptyFields = Object.entries(payload).filter(([k, v]) => v === undefined || v === "");
             if (emptyFields.length) {
-                applyError(endpointKey, `Please fill in: ${emptyFields.map(f => f[0]).join(", ")}`);
+                applyError(endpointKey, `Пожалуйста, заполните: ${emptyFields.map(f => f[0]).join(", ")}`);
                 render();
                 return;
             }
 
             const result = await callEndpoint(endpointKey);
 
-            // check HTTP code via result.code or fallback to redirectOnSuccess
             if ((result && result.code >= 200 && result.code < 300) || (action && action.redirectOnSuccess)) {
                 applyState(endpointKey, result);
-            } else {
-                applyError(endpointKey, result && result.error ? result.error : "Unknown error");
             }
         } catch (e) {
-            applyError(endpointKey, e);
+            const code = e.status || "default";
+            const msg = ERROR_MESSAGES[code] || ERROR_MESSAGES["default"];
+            applyError(endpointKey, msg);
         }
 
         render();

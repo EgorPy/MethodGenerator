@@ -9,12 +9,13 @@ class ActionModel:
 
     def __init__(
             self,
-            id_: str,  # unique identifier, example "auth.login"
-            service_id: str,  # which service serves for action, example "auth"
-            url: str,  # FastAPI path, example "/login/"
-            method: str,  # HTTP method, example "POST"
-            payload: List[str],  # list of fields, which needs to be put together from UI bind
-            encoding: str = "form"  # form or json
+            id_: str,
+            service_id: str,
+            url: str,
+            method: str,
+            payload: List[str],
+            encoding: str = "form",
+            redirect_on_success: str = "self"
     ):
         self.id = id_
         self.service_id = service_id
@@ -22,6 +23,7 @@ class ActionModel:
         self.method = method
         self.payload = payload
         self.encoding = encoding
+        self.redirect_on_success = redirect_on_success or "self"
 
     def to_dict(self):
         return {
@@ -30,5 +32,6 @@ class ActionModel:
             "url": self.url,
             "method": self.method,
             "payload": self.payload,
-            "encoding": self.encoding
+            "encoding": self.encoding,
+            "redirectOnSuccess": self.redirect_on_success
         }
