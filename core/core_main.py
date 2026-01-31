@@ -30,10 +30,7 @@ async def run():
         logger.error(f"Site build failed: {e}")
         raise e
 
-    # 3. Load services safely
-    services = get_registered_services()
-
-    # 4. Poll services
+    # 3. Poll services
     await poll_tasks()
 
 

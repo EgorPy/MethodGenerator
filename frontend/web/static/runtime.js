@@ -5,25 +5,31 @@
         lastError: null,
         redirectTo: null,
         loading: false,
+        errorTimeoutId: null,
     };
 
     const ERROR_MESSAGES = {
-        400: "Неверные данные. Пожалуйста, проверьте форму",
-        401: "Неверный логин или пароль",
-        403: "Доступ запрещён",
-        404: "Сервис не найден",
-        422: "Неверный формат данных",
-        500: "Внутренняя ошибка сервера",
-        "default": "Произошла неизвестная ошибка"
+        400: "Wrong data. Please, check form",
+        401: "Wrong login or password",
+        403: "Forbidden",
+        404: "Service not found",
+        422: "Wrong data format",
+        500: "Internal server error",
+        "default": "Unknown error occured"
     };
 
-    function buildUrl(actionUrl) {
+    function buildUrl(action) {
         const base = String(window.BACKEND_URL || "").replace(/\/$/, "");
-        const path = String(actionUrl || "");
+        if (!base) return action.url;
 
-        if (!base) return path;
-        if (path.startsWith("http://") || path.startsWith("https://")) return path;
-        if (!path.startsWith("/")) return base + "/" + path;
+        const url = String(action.url || "");
+        const serviceId = String(action.serviceId || "").replace(/^\/|\/$/g, "");
+
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
+
+        const path = url.startsWith("/") ? url : "/" + url;
+
+        if (serviceId) return base + "/" + serviceId + path;
         return base + path;
     }
 
@@ -96,7 +102,7 @@
         if (!action) throw new Error(`Unknown endpoint '${endpointKey}'`);
 
         const method = (action.method || "GET").toUpperCase();
-        const url = buildUrl(action.url);
+        const url = buildUrl(action);
         const encoding = action.encoding || "json";
         const payload = collectPayload(action);
 
@@ -149,6 +155,8 @@
         STATE.lastResult = null;
         STATE.lastError = String(error && error.message ? error.message : error);
         STATE.redirectTo = null;
+
+        scheduleErrorHide();
     }
 
     function setVisible(el, visible) {
@@ -166,6 +174,32 @@
             errBox.textContent = "";
             setVisible(errBox, false);
         }
+    }
+
+    function renderErrorToast() {
+        const toast = document.querySelector(`[data-ui="error-toast"]`);
+        if (!toast) return;
+
+        if (STATE.lastError) {
+            toast.textContent = STATE.lastError;
+            toast.classList.add("show");
+        } else {
+            toast.classList.remove("show");
+            setTimeout(() => {
+                if (!STATE.lastError) toast.textContent = "";
+            }, 200);
+        }
+    }
+
+    function scheduleErrorHide() {
+        if (STATE.errorTimeoutId) clearTimeout(STATE.errorTimeoutId);
+
+        if (!STATE.lastError) return;
+
+        STATE.errorTimeoutId = setTimeout(() => {
+            STATE.lastError = null;
+            render();
+        }, 3500);
     }
 
     function renderLoading() {
@@ -229,6 +263,7 @@
         renderLoading();
         renderButtonsDisabled();
         renderErrorBox();
+        renderErrorToast();
         renderShowRules();
         renderTextBindings();
         renderValueBindings();
@@ -243,7 +278,7 @@
             const payload = collectPayload(action);
             const emptyFields = Object.entries(payload).filter(([k, v]) => v === undefined || v === "");
             if (emptyFields.length) {
-                applyError(endpointKey, `Пожалуйста, заполните: ${emptyFields.map(f => f[0]).join(", ")}`);
+                applyError(endpointKey, `Please, fill: ${emptyFields.map(f => f[0]).join(", ")}`);
                 render();
                 return;
             }

@@ -5,6 +5,7 @@
     <link href="../static/container.css" rel="stylesheet">
     <link href="../static/button.css" rel="stylesheet">
     <link href="../static/style.css" rel="stylesheet">
+    <link href="../static/ui_error_toast.css" rel="stylesheet">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta charset="UTF-8">
     <style>
@@ -26,8 +27,9 @@
     <script src="../static/runtime.js"></script>
   </head>
   <body>
+    <div class="ui-error-toast" data-ui="error-toast"></div>
     <div class="container" style="display:flex; flex-direction:column">
-      <button class="button" data-action="auth.logout" style="" text="Submit" type="button">Submit</button>
+      <button class="button" data-action="submit" data-endpoint="auth.logout" style="" text="Submit" type="button">Submit</button>
     </div>
   </body>
 </html>

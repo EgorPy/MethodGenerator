@@ -2,6 +2,7 @@ type: container
 layout: vertical
 children:
 - type: button
-  action: auth.logout
+  action: submit
+  endpoint: auth.logout
   props:
     text: Submit

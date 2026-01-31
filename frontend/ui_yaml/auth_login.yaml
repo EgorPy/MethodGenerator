@@ -9,7 +9,9 @@ children:
   bind: password
   props:
     placeholder: password
+    type: password
 - type: button
-  action: auth.login
+  action: submit
+  endpoint: auth.login
   props:
     text: Submit

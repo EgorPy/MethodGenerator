@@ -3,8 +3,8 @@ Service object for Core API inspection.
 Contains router from auth.py for Core to scan actions.
 """
 
-from types import SimpleNamespace
 from backend.services.auth.api.auth import router
+from types import SimpleNamespace
 
 SERVICE = SimpleNamespace(
     name="auth",

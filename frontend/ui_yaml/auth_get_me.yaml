@@ -2,6 +2,7 @@ type: container
 layout: vertical
 children:
 - type: button
-  action: auth.get_me
+  action: submit
+  endpoint: auth.get_me
   props:
     text: Submit

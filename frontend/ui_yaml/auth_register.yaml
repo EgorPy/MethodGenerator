@@ -21,7 +21,9 @@ children:
   bind: password
   props:
     placeholder: password
+    type: password
 - type: button
-  action: auth.register
+  action: submit
+  endpoint: auth.register
   props:
     text: Submit

@@ -6,6 +6,7 @@
     <link href="../static/button.css" rel="stylesheet">
     <link href="../static/text_input.css" rel="stylesheet">
     <link href="../static/style.css" rel="stylesheet">
+    <link href="../static/ui_error_toast.css" rel="stylesheet">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta charset="UTF-8">
     <style>
@@ -27,10 +28,11 @@
     <script src="../static/runtime.js"></script>
   </head>
   <body>
+    <div class="ui-error-toast" data-ui="error-toast"></div>
     <div class="container" style="display:flex; flex-direction:column">
       <input class="text-input" data-bind="email" placeholder="email" style="" type="text">
-      <input class="text-input" data-bind="password" placeholder="password" style="" type="text">
-      <button class="button" data-action="auth.login" style="" text="Submit" type="button">Submit</button>
+      <input class="text-input" data-bind="password" placeholder="password" style="" type="password">
+      <button class="button" data-action="submit" data-endpoint="auth.login" style="" text="Submit" type="button">Submit</button>
     </div>
   </body>
 </html>

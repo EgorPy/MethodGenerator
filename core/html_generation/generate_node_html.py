@@ -2,7 +2,7 @@ from core.html_generation.ui_node import UINode, ElementType
 from core.html_generation.node_registry import registry
 from core.logger import logger
 
-from dominate.tags import style, link, meta, script, form
+from dominate.tags import style, link, meta, script, form, div
 from dominate import document
 import os
 
@@ -109,6 +109,7 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI",
             link(rel="stylesheet", href=relative_static_path(f))
 
         link(rel="stylesheet", href=relative_static_path("style.css"))
+        link(rel="stylesheet", href=relative_static_path("ui_error_toast.css"))
 
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         meta(charset="UTF-8")
@@ -133,6 +134,8 @@ def generate_page_from_ui_tree(nodes: list[UINode], title: str = "Generated UI",
         script(src=relative_static_path("runtime.js"))
 
     with doc:
+        doc.add(div("", _class="ui-error-toast", **{"data-ui": "error-toast"}))
+
         for node in nodes:
             doc.add(render_with_children(node))
 
