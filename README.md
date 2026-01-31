@@ -119,7 +119,7 @@ frontend/
 ## YAML Elements and Decorations
 
 * **Main form YAML**: `<form_name>.yaml` (e.g., `auth_login.yaml`)
-* **Decoration YAML**: `<form_name>_decoration.yaml` or placed in `frontend/ui_yaml/extra_ui/`
+* **Decoration YAML**: `<form_name>_decoration.yaml` and placed in `frontend/ui_yaml/extra_ui/`
   These files define additional UI elements to render **around or relative to the form**.
 
 ### Example Main Form
