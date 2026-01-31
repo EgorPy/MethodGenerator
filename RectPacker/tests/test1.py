@@ -1,4 +1,4 @@
-from core.html_generation import Rect
+from RectPacker.legacy.rect_packer import Rect
 
 parent_rect = Rect(1536, 864, margin_x=0, margin_y=0)
 email_input = Rect(10, 40, pwidth=50, max_width=1000, parent=parent_rect)

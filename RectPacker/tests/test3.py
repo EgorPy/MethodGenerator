@@ -1,5 +1,5 @@
-from core.html_generation import generate_page, save_html
-from core.html_generation import UIElementRect
+from RectPacker.legacy.generate_rect_html import generate_page, save_html
+from RectPacker.legacy.ui_rect import UIElementRect
 
 elements = [
     UIElementRect(

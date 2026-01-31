@@ -1,204 +1,281 @@
-# UI Runtime & API-Driven Frontend Generation
+# MethodGenerator
 
-This project is a **website creation system**, not a single website.
+MethodGenerator is a **full-stack UI generation framework** that automates the creation of web pages from backend API endpoints.
+It provides a flexible system to attach additional UI elements via YAML while preserving the core form generated from the API.
 
-Goal: generate and run web UI with **minimal boilerplate**, where behavior is driven by **API actions + state**, not by writing
-custom JS for every button.
+---
+
+## Table of Contents
+
+1. [Project Structure](#project-structure)
+2. [Core Concept](#core-concept)
+3. [Workflow](#workflow)
+4. [UI Decorator (`@ui`) and YAML Elements](#ui-decorator-ui-and-yaml-elements)
+5. [Process Overview](#process-overview--generation-flow)
+6. [Zones and Layouts](#zones-and-layouts)
+7. [CSS and Styling](#css-and-styling)
+8. [Runtime Behavior](#runtime-behavior-runtimejs)
+9. [Extending MethodGenerator](#extending-methodgenerator)
+10. [Testing](#testing)
+
+---
+
+## Project Structure
+
+```
+backend/
+  backend_main.py
+  __init__.py
+  services/
+    auth/
+      service.py
+      __init__.py
+      api/
+        auth.py
+      logic/
+        auth_logic.py
+        security.py
+
+core/
+  build_site.py
+  config.py
+  core_main.py
+  generate_config_js.py
+  logger.py
+  main.py
+  method_generator.py
+  redirects.py
+  registry.py
+  service_loader.py
+  task.py
+  ui_decorator.py
+  actions_generation/
+    actions_parser.py
+    action_model.py
+    api_inspector.py
+    generate_actions_js.py
+  html_generation/
+    element_types.yaml
+    generate_node_html.py
+    login_example.yaml
+    node_registry.py
+    ui_enums.py
+    ui_node.py
+    yaml_parser.py
+
+frontend/
+  frontend_main.py
+  ui_yaml/
+    auth_login.yaml
+    auth_register.yaml
+    ...
+  web/
+    pages/
+      auth_login.html
+      profile.html
+      ...
+    static/
+      actions.js
+      runtime.js
+      ui_error_toast.css
+      ...
+```
+
+* **backend/**: main backend logic, services, and API endpoints. Every service should provide service.py with FastAPI router
+* **core/**: the engine of MethodGenerator (site building, HTML, YAML generation, actions parsing, UI decorator, runtime config).
+* **frontend/**: generated UI YAML, pages, static assets.
+* **RectPacker/**: legacy HTML layout utilities.
+* **tests/**: test scripts for backend, frontend, and runtime.
 
 ---
 
 ## Core Concept
 
-### API = what the app can do
-
-### Pages = where the user is in the flow
-
-A single API service can produce multiple pages.  
-Pages do not depend on the number of services.
-
-Examples:
-
-- `auth` service can produce: `/login`, `/register`, `/profile`
-- `shop` service can produce: `/catalog`, `/product/:id`, `/cart`
+1. The **central form** is generated automatically from backend API endpoints.
+   Each endpoint’s payload fields are converted into form inputs.
+2. Additional UI elements (header, footer, banners, sidebars, text, etc.) can be attached via `@ui(...)` using separate YAML
+   files.
+3. **The form always stays in the center** of the page; additional elements are rendered around it without breaking its layout.
+4. Runtime logic handles fetching, submission, error handling, and dynamic updates for a fully interactive page.
 
 ---
 
-## Runtime Architecture
+## Workflow
 
-The web UI consists of three layers:
+1. **API Definition**: Define endpoints in FastAPI.
+   Include payload fields and optional redirect behavior.
+   Every API endpoint provides a redirect, by default redirect is set to "self" which is the same page
+2. **Actions JS Generation**: Use `generate_actions_js.py` to convert backend endpoints into `actions.js`.
+3. **YAML Generation**: `actions_parser.py` converts `actions.js` into base YAML forms for the frontend.
+4. **UI Decoration**: Use `@ui(...)` to attach additional YAML elements.
+5. **Page Generation**: `generate_page_from_ui_tree()` renders HTML pages automatically including CSS files, JS scripts, and UI
+   elements.
+6. **Runtime Handling**: `runtime.js` handles:
 
-1. **Generated HTML pages**
-2. **Generated API actions registry (`actions.js`)**
-3. **Universal runtime engine (`runtime.js`)**
+    * Collecting input values
+    * Fetching backend endpoints
+    * Displaying errors via toast or inline elements
+    * Success redirects and dynamic rendering
 
-### Pages
+---
 
-- Stored as plain `.html`
-- Contain UI components with attributes like:
-    - `data-bind="field_name"`
-    - `data-endpoint="service.action"`
+## UI Decorator (`@ui`) and YAML Elements
 
-Pages should not contain custom logic per button.
+The `@ui(...)` decorator attaches additional YAML UI elements to endpoints.
 
-### actions.js
+```python
+from fastapi import APIRouter
 
-Generated from backend API.
-Contains action definitions like:
+from core.ui_decorator import ui
 
-```js
-window.ACTIONS = {
-  "auth.login": {
-    "method": "POST",
-    "url": "/auth/login/",
-    "service_id": "auth",
-    "payload": ["email", "password"],
-    "encoding": "json"
-  }
-};
+router = APIRouter()
+
+
+@ui("/static/yaml/header.yaml", "/static/yaml/sidebar.yaml")
+@router.post("/login/")
+async def login():
+    ...
 ```
 
-### runtime.js
+* Multiple YAML elements can be attached at once.
+* Each YAML element defines `props.position` and `props.layout` to determine its placement and orientation.
+* The decorator does **not change API logic**, only extends UI around the central form.
 
-A universal JS engine that:
+**Example YAML element:**
 
-* Collects payload from UI (`data-bind`)
-* Calls API endpoints from `window.ACTIONS`
-* Updates global state
-* Applies universal rules (redirects, errors, UI updates)
+```yaml
+type: container
+props:
+  position: form-left
+  layout: vertical
+  style:
+    width: 200px
+    background-color: "#f5f5f5"
+children:
+  - type: h3
+    props:
+      text: "Menu"
+  - type: button
+    props:
+      text: "Dashboard"
+```
 
----
+## Process Overview / Generation Flow
 
-## Behavior Model (State-Driven)
+MethodGenerator is designed to automate the creation of a full-stack web application UI and backend integration from API
+definitions.
+The system handles backend inspection, action extraction, YAML generation, and HTML page creation.
+Here is the flow:
 
-The runtime must follow the rule:
+### 1. Core System Startup
 
-**API response → update STATE → UI reacts**
+- `core/main.py` is the main entry point for the system.
+- On launch, it starts the three main subsystems:
+    - **Backend** (`backend/backend_main.py`) – FastAPI server exposing APIs.
+    - **Frontend** (`frontend/frontend_main.py`) – Serves generated HTML pages and static files.
+    - **Core** (`core/core_main.py`) – Coordinates inspection, YAML generation, and HTML rendering.
 
-No custom JS per button.
-
-### Typical flow
-
-1. User clicks a button (`data-endpoint="auth.login"`)
-2. runtime collects payload from `data-bind` inputs
-3. runtime calls API using `fetch()`
-4. runtime updates global `STATE`
-5. runtime triggers UI behavior (redirect, show error, etc.)
-
----
-
-## Redirect-Based Navigation
-
-This system uses **multipage HTML generation**.
-
-After an API call, navigation should happen through **redirect rules**, not custom JS.
-
-Example:
-
-* `auth.login` success → redirect to `/profile`
-* `auth.logout` success → redirect to `/login`
-
----
-
-## System Modes
-
-The runtime must work in 3 valid modes.
+The launcher can start services either in separate consoles (Windows) or in the background with `nohup` (Linux).
 
 ---
 
-### 1) Static-only mode (0 API services)
+### 2. API Inspection & Actions Collection
 
-No backend connected.
+- Core inspects backend services in `backend/services/` to discover API endpoints.
+- Each endpoint is analyzed to collect:
+    - HTTP method (GET, POST, etc.)
+    - URL path
+    - Payload fields (from parameters or request body)
+- Extracted actions are used to generate a single `actions.js` file, containing all discovered endpoints with metadata.
+- Example of collected action:
 
-* `actions.js` is empty or not included
-* Pages still render normally
-* runtime still works as UI engine:
-
-  * can read/write `data-bind`
-  * can support redirects via static links
-  * can show local UI changes if implemented
-
-This mode is required for:
-
-* landing pages
-* documentation sites
-* prototypes
-
----
-
-### 2) API-driven mode (1+ API services)
-
-Backend services are connected.
-
-* `actions.js` is generated from API
-* runtime can call endpoints and drive flows
-* pages can be generated based on API structure
-
-Important:
-
-* **1 service ≠ 1 page**
-* A single service can produce many pages
+```json
+{
+  "auth.login": {
+    "method": "POST",
+    "url": "/login/",
+    "payload": [
+      "email",
+      "password"
+    ]
+  }
+}
+````
 
 ---
 
-### 3) Landing-only mode (single page)
+### 3. YAML Generation
 
-A single-page website is still supported.
-
-Possible configurations:
-
-* **Pure static landing**: no API
-* **Landing + API**: one page calls actions like `leads.create`
-
-Example:
-
-* `/` contains a form
-* submit triggers `leads.create`
-* on success: show success state or redirect to `/thank-you`
+* For each action in `actions.js`, a corresponding YAML file is generated in `frontend/ui_yaml/`.
+* The YAML defines the UI form layout for that action (input fields, submit button, etc.).
+* This serves as the main “form” structure for the page.
+* Additional user interface elements (headers, banners, sidebars) can be attached via the `@ui(...)` decorator.
 
 ---
 
-## Pages vs. Services
+### 4. HTML Page Generation
 
-### Services
-
-* Provide actions: `service.action`
-* Define payload structure and HTTP method
-* Are discoverable via backend inspection
-
-### Pages
-
-* Represent user flow steps
-* Can exist without services
-* Are not limited by the number of services
+* The core renders HTML pages from YAML nodes using `generate_node_html.py`.
+* Each element automatically includes its corresponding CSS file if available.
+* The generated page always keeps the main form at the center.
+* Additional elements can be placed relative to the form or the page without breaking the layout.
+* Output HTML pages are saved to `frontend/web/pages/`.
 
 ---
 
-## Minimum Recommended Pages
+### 5. Frontend Routing
 
-Even with **0 API services**, the project should support:
-
-* `/` (index)
-* `/404` (not found)
-* `/debug/state` (optional but highly useful for development)
-
-With an `auth` service, typical generated pages:
-
-* `/login`
-* `/register`
-* `/profile`
+* HTML pages are automatically registered as routes by the frontend system.
+* Each page can be accessed via its route, e.g., `/auth_login` serves `auth_login.html`.
+* Static assets (CSS, JS) are served from `frontend/web/static/`.
 
 ---
 
-## Principles
+### 6. Running the Full System
 
-* Minimal boilerplate
-* No per-button custom JS
-* Behavior is defined by:
-
-  * API action registry (`actions.js`)
-  * state updates
-  * universal runtime rules
-* Multi-page navigation via redirects
-* Works with 0, 1, or many services
+* Run `core/main.py` to start backend, frontend, and core simultaneously.
+* On Windows, separate consoles open for each subsystem with live output.
+* On Linux, `nohup` launches background processes with `.out` log files.
 
 ---
+
+## Zones and Layouts
+
+* **Form-relative zones**: `form-top`, `form-bottom`, `form-left`, `form-right`
+* **Page-relative zones**: `page-top-left`, `page-top-right`, `page-bottom-left`, `page-bottom-right`
+* Each zone supports multiple elements, horizontally or vertically stacked (`props.layout`).
+* Allows flexible “wrapping” of the central form with instructions, tips, sidebars, or banners.
+
+---
+
+## CSS and Styling
+
+* Each element type can have a corresponding CSS file (`button.css`, `ui_error_toast.css`, etc.).
+* CSS files are automatically included if present in `frontend/web/static`.
+* Inline styles (`props.style`) and classes (`props.class`) can be used for additional customization.
+
+---
+
+## Runtime Behavior (`runtime.js`)
+
+* Collects values from `data-bind` inputs.
+* Calls backend endpoints defined in `actions.js`.
+* Displays **error toasts** or messages based on status codes.
+* Handles **redirects** on success.
+* Updates bound elements dynamically without a page reload.
+
+---
+
+## Extending MethodGenerator
+
+1. **Add new YAML elements**: Create a YAML file with `type`, `props`, and `children`.
+2. **Attach with `@ui(...)`**: Any endpoint can include multiple elements.
+3. **Add CSS**: Name your CSS file after the element type and place in `frontend/web/static`.
+
+---
+
+## Testing
+
+* **Legacy tests**: Located in `tests/` and `RectPacker/tests/`.
+* Test API YAML generation, runtime behavior, UI rendering, and HTML output.
+* Example: `ui_runtime_test.py` manually generates actions.js by inspecting FastAPI router.

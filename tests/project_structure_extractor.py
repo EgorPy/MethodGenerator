@@ -1,5 +1,6 @@
 import os
 
+
 def extract_project_structure(root_path, extensions=None):
     if extensions is None:
         extensions = {".py", ".js", ".html", ".css", ".yaml"}
@@ -31,8 +32,10 @@ def extract_project_structure(root_path, extensions=None):
     structure = scan_dir(root_path)
     return structure or {}
 
+
 if __name__ == "__main__":
     import json
+
     project_path = "c:/users/dmitry/MethodGenerator"
     structure = extract_project_structure(project_path)
     print(json.dumps(structure, indent=2))
