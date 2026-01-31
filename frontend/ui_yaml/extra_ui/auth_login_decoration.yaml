@@ -7,7 +7,7 @@ props:
 children:
   - type: h1
     props:
-      text: "Вход"
+      text: Login
       style:
         text-align: center
         margin-bottom: 4px
@@ -19,11 +19,9 @@ children:
     children:
       - type: h3
         props:
-          text: "Нет аккаунта?"
+          text: No account?
           class: gray-text
       - type: a
         props:
-          href: "#"
-          text: "Регистрация"
-          style:
-            text-decoration: underline
+          href: /auth_register
+          text: Register

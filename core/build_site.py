@@ -8,6 +8,7 @@ import os
 
 FRONTEND_STATIC = os.path.abspath("frontend/web/static")
 UI_YAML_DIR = os.path.abspath("frontend/ui_yaml")
+EXTRA_UI_DIR = os.path.join(UI_YAML_DIR, "extra_ui")
 FRONTEND_PAGES = os.path.abspath("frontend/web/pages")
 
 
@@ -51,8 +52,15 @@ def build_site():
         html_name = yaml_file.replace(".yaml", ".html")
         html_path = os.path.join(FRONTEND_PAGES, html_name)
 
+        # Searching extra ui: form auth_login.yaml → extra ui auth_login_decoration.yaml
+        base_name = yaml_file.replace(".yaml", "")
+        decoration_name = f"{base_name}_decoration.yaml"
+        decoration_yaml_path = os.path.join(EXTRA_UI_DIR, decoration_name)
+        if not os.path.exists(decoration_yaml_path):
+            decoration_yaml_path = None
+
         try:
-            generate_html_from_yaml(yaml_path, html_path)
+            generate_html_from_yaml(yaml_path, html_path, decoration_yaml=decoration_yaml_path)
             logger.info(f"HTML generated: {html_path}")
         except Exception as e:
             logger.error(f"Failed to generate HTML from {yaml_path}: {e}")

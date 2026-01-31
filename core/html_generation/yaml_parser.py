@@ -1,24 +1,19 @@
-""" YAML to HTML parser """
+""" YAML to HTML parser with decoration support (position-aware) """
 
 from core.html_generation.generate_node_html import generate_page_from_ui_tree, save_html
 from core.html_generation.ui_enums import ElementType, Layout, Align, Justify
 from core.html_generation.ui_node import UINode
-
 from typing import Any, Callable, List, Optional, Dict
 import yaml
 import os
 
 
 def load_yaml(path: str) -> dict:
-    """ Load file to dict """
-
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def parse_enum(enum_cls, value: Optional[str]):
-    """ Parse string to Enum. None returns None. """
-
     if value is None:
         return None
     try:
@@ -32,17 +27,10 @@ class ValidationError(Exception):
 
 
 class ValidatorRegistry:
-    """
-    UINode validation registry.
-    Validators are called recursively for every node.
-    """
-
     def __init__(self):
         self.validators: List[Callable[[UINode], None]] = []
 
     def register(self, func: Callable[[UINode], None]):
-        """ Add validator. """
-
         self.validators.append(func)
         return func
 
@@ -73,15 +61,12 @@ def action_only_for_buttons(node: UINode):
 @validator_registry.register
 def children_only_for_containers(node: UINode):
     if node.children and node.type_ != ElementType.CONTAINER:
-        allowed = {ElementType.CONTAINER}
-        if node.type_ not in allowed:
-            raise ValidationError(f"Only container can have children, but {node.type_} have children")
+        raise ValidationError(f"Only container can have children, but {node.type_} have children")
 
 
 def parse_ui_node(data: Dict[str, Any]) -> UINode:
     if not isinstance(data, dict):
         raise TypeError("Every node must be a dict")
-
     if "type" not in data:
         raise ValueError("A node must have key 'type'")
 
@@ -115,41 +100,68 @@ def parse_ui_node(data: Dict[str, Any]) -> UINode:
 
 
 def parse_ui_yaml(path: str, validate: bool = True) -> UINode:
-    """
-    Loads YAML file and converts it to UINode.
-    If validate=True, validates the node tree.
-    """
-
     data = load_yaml(path)
     root = parse_ui_node(data)
-
     if validate:
         validator_registry.validate_node(root)
-
     return root
 
 
-def generate_html_from_yaml(yaml_path: str, html_path: str, validate: bool = True):
+def find_node_by_position(root: UINode, position: str) -> Optional[UINode]:
+    """ Находит первый контейнер с props.position == position """
+    if root.type_ == ElementType.CONTAINER and root.props:
+        if root.props.get("position") == position:
+            return root
+    for child in root.children:
+        found = find_node_by_position(child, position)
+        if found:
+            return found
+    return None
+
+
+def merge_ui_nodes(base_node: UINode, decoration_node: UINode) -> UINode:
+    """
+    Inserts base_node inside decoration_node according to props.position.
+    If position is not found, inserts into the end of the root.
+    """
+
+    position = getattr(base_node.props, "position", None) or "form-top"
+
+    target_node = find_node_by_position(decoration_node, position)
+    if target_node:
+        target_node.children.append(base_node)
+    else:
+        decoration_node.children.append(base_node)
+
+    return decoration_node
+
+
+def generate_html_from_yaml(base_yaml: str, html_path: str, decoration_yaml: str = None, validate: bool = True):
     """
     Loads YAML → parses → validates → generates HTML and saves it.
     Automatically computes correct paths for CSS/JS.
+    Merges YAML files from frontend/ui_yaml and frontend/ui_yaml/extra_ui if there are files in extra_ui
     """
 
-    root_node = parse_ui_yaml(yaml_path, validate=validate)
+    base_node = parse_ui_yaml(base_yaml, validate)
+
+    if decoration_yaml:
+        decoration_node = parse_ui_yaml(decoration_yaml, validate)
+        merged_node = merge_ui_nodes(base_node, decoration_node)
+    else:
+        merged_node = base_node
 
     html_path = os.path.abspath(html_path)
+    html_text = generate_page_from_ui_tree([merged_node], output_path=html_path)
 
-    html_text = generate_page_from_ui_tree([root_node], output_path=html_path)
-
-    html_dir = os.path.dirname(html_path)
-    os.makedirs(html_dir, exist_ok=True)
-
+    os.makedirs(os.path.dirname(html_path), exist_ok=True)
     save_html(html_path, html_text)
     print(f"HTML successfully created: {html_path}")
 
 
 if __name__ == "__main__":
-    yaml_file = "example.yaml"
-    html_file = "../../frontend/web/pages/page.html"
+    base_yaml_file = "../../frontend/ui_yaml/auth_login.yaml"
+    decoration_yaml_file = "../../frontend/ui_yaml/extra_ui/login_decoration.yaml"
+    output_html_file = "../../frontend/web/pages/auth_login.html"
 
-    generate_html_from_yaml(yaml_file, html_file)
+    generate_html_from_yaml(base_yaml_file, decoration_yaml_file, output_html_file)

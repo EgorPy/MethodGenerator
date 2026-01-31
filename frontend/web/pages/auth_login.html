@@ -2,9 +2,13 @@
 <html>
   <head>
     <title>Generated UI</title>
-    <link href="../static/container.css" rel="stylesheet">
-    <link href="../static/button.css" rel="stylesheet">
+    <link href="../static/h3.css" rel="stylesheet">
     <link href="../static/text_input.css" rel="stylesheet">
+    <link href="../static/button.css" rel="stylesheet">
+    <link href="../static/h1.css" rel="stylesheet">
+    <link href="../static/container.css" rel="stylesheet">
+    <link href="../static/a.css" rel="stylesheet">
+    <link href="../static/gray-text.css" rel="stylesheet">
     <link href="../static/style.css" rel="stylesheet">
     <link href="../static/ui_error_toast.css" rel="stylesheet">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
@@ -29,10 +33,17 @@
   </head>
   <body>
     <div class="ui-error-toast" data-ui="error-toast"></div>
-    <div class="container" style="display:flex; flex-direction:column">
-      <input class="text-input" data-bind="email" placeholder="email" style="" type="text">
-      <input class="text-input" data-bind="password" placeholder="password" style="" type="password">
-      <button class="button" data-action="submit" data-endpoint="auth.login" style="" text="Submit" type="button">Submit</button>
+    <div class="container" style="">
+      <h1 class="h1" style="text-align:center; margin-bottom:4px" text="Login">Login</h1>
+      <div class="container" style="display:flex; flex-direction:row">
+        <h3 class="h3 gray-text" style="" text="No account?">No account?</h3>
+        <a class="a" href="/auth_register" style="" text="Register">Register</a>
+      </div>
+      <div class="container" style="display:flex; flex-direction:column">
+        <input class="text-input" data-bind="email" placeholder="email" style="" type="text">
+        <input class="text-input" data-bind="password" placeholder="password" style="" type="password">
+        <button class="button" data-action="submit" data-endpoint="auth.login" style="" text="Submit" type="button">Submit</button>
+      </div>
     </div>
   </body>
 </html>
