@@ -6,86 +6,9 @@ elements.
 ## 1. Core Concept
 
 * The **form** is always located at the center of the page. This is the main YAML generated from `actions.js`.
-* **Additional elements** are added via the `@ui(...)` decorator and are separate YAML elements.
+* **Additional elements** are added as separate YAML files.
 * **Elements can be placed around the form** or relative to the page without breaking the form structure.
 * Each zone can contain **multiple elements** and have a **layout**: `horizontal` or `vertical`.
-
-## 1.1 `@ui(...)` Decorator
-
-The `@ui(...)` decorator allows you to attach **additional YAML UI elements** to an API endpoint without changing the API logic.
-These elements can be positioned **around the central form** or **relative to the page**, using predefined zones.
-
-### Usage
-
-```python
-from fastapi import APIRouter
-
-from core.ui_decorator import ui
-
-router = APIRouter()
-
-
-@ui("/path/to/header.yaml", "/path/to/footer.yaml")
-@router.post("/login/")
-async def login():
-    ...
-```
-
-* Each argument to `@ui(...)` is a **path or URL** to a YAML element.
-* You can attach **multiple elements at once** by listing them in the decorator.
-* YAML elements can contain any supported UI components: text, buttons, images, notifications, custom elements, etc.
-
-### Features
-
-1. **Zone-based placement**
-   Each YAML element must specify a `props.position` field to indicate where it should appear relative to the form or page.
-   Supported positions include:
-
-    * `form-top`, `form-bottom`, `form-left`, `form-right`
-    * `page-top-left`, `page-top-right`, `page-bottom-left`, `page-bottom-right`
-    * (Future zones can be added, e.g., `page-left` / `page-right`)
-
-2. **Layout**
-
-    * Use `props.layout` to define how child elements are arranged inside the container.
-    * Options: `vertical` or `horizontal`.
-
-3. **Multiple elements per zone**
-
-    * Each YAML element can contain multiple children.
-    * Multiple elements can also be attached in a single `@ui(...)` decorator or via multiple decorators; they will render in the
-      order defined.
-
-4. **Central form safety**
-
-    * The form generated from the API YAML always stays in the center; adding UI elements via `@ui(...)` **does not break the form
-      ** or API logic.
-
-5. **Styling**
-
-    * Any element can define inline styles via `props.style` or custom CSS classes via `props.class`.
-    * CSS files with the same name as the element type are automatically included during page generation.
-
-### Example: Adding a header and a sidebar
-
-```python
-from fastapi import APIRouter
-
-from core.ui_decorator import ui
-
-router = APIRouter()
-
-
-@ui("/static/yaml/header.yaml", "/static/yaml/sidebar.yaml")
-@router.post("/login/")
-async def login():
-   ...
-```
-
-* `header.yaml` might define a title and instructions (`position: form-top`).
-* `sidebar.yaml` could define a vertical menu or tips (`position: form-left`).
-
-> This approach allows you to **decorate any endpoint** with rich UI content without changing the underlying API behavior.
 
 ---
 
@@ -157,8 +80,8 @@ children:
 ## 4. Page Generation Algorithm
 
 1. Load the **main YAML form** → center of the page.
-2. Load **additional YAML elements** via `@ui(...)`.
-3. Group elements by `props.position`.
+2. Load **additional YAML elements** (extra UI) from `frontend/ui_yaml/extra_ui`.
+3. Merge additional elements with the form based on `props.position`.
 4. Render each zone:
 
 * `form-top` / `form-bottom` → vertical or horizontal flex above/below the form.
@@ -329,16 +252,18 @@ children:
       class: "inbox-button"
 ```
 
-## 7. Sidebars and Distance from the Form
+---
 
-### 7.1 `form-left` / `form-right`
+### 7. Sidebars and Distance from the Form
+
+#### 7.1 `form-left` / `form-right`
 
 * These zones are **directly next to the form** (left or right).
 * **Default behavior:** the container hugs the form with minimal spacing.
 * **Use case:** tips, small menus, icons, or helper elements that should stay close to the form.
 * **Width and spacing:** controlled via `props.style` (e.g., `width`, `margin`).
 
-Example: small tips container left of the form:
+Example:
 
 ```yaml
 type: container
@@ -357,25 +282,20 @@ children:
       text: "Tip 2"
 ```
 
-> The container stays immediately next to the form; it does **not** extend to the edge of the screen.
+#### 7.2 Full Sidebars to the Edge of the Screen
 
----
-
-### 7.2 Full Sidebars to the Edge of the Screen
-
-* If you want a **sidebar stretching from top to bottom or from the edge of the page**, it’s recommended to use a **page-level
-  zone**:
+* For a **sidebar stretching from top to bottom or from the edge of the page**, use a **page-level zone**:
 
     * `page-top-left`, `page-bottom-left`, or a new `page-left` zone.
 * **Positioning:** absolute or fixed via `props.style` to extend to the page edge without affecting the central form.
 * **Use case:** full navigation menus, notification panels, or large vertical content.
 
-Example: full left sidebar:
+Example:
 
 ```yaml
 type: container
 props:
-  position: page-left   # page-level zone
+  position: page-left
   layout: vertical
   style:
     width: 250px
@@ -413,3 +333,136 @@ children:
 
 > Central form always remains in the middle of the page; adding sidebars or elements around it **never breaks API-generated layout
 **.
+
+## 8. Automatic Form and Decoration Matching
+
+The site generation system can automatically merge **main form YAML** with **decoration YAML** based on file naming conventions.
+This allows developers to create additional UI elements around forms without manually specifying them.
+
+### 8.1 Naming Convention
+
+* **Main form YAML:**
+
+  ```
+  <form_name>.yaml
+  ```
+
+  Example: `auth_login.yaml`
+
+* **Decoration YAML:**
+
+  ```
+  <form_name>_decoration.yaml
+  ```
+
+  Example: `auth_login_decoration.yaml`
+
+> The system matches the **prefix before `_decoration`** with the main form name.
+> If a decoration file exists, it will be
+> automatically merged with the form when generating HTML.
+
+---
+
+### 8.2 Example
+
+**Main form:** `auth_login.yaml`
+
+```yaml
+type: container
+layout: vertical
+children:
+  - type: text_input
+    bind: email
+    props:
+      placeholder: "Email"
+  - type: text_input
+    bind: password
+    props:
+      placeholder: "Password"
+      type: password
+  - type: button
+    action: submit
+    endpoint: auth.login
+    props:
+      text: "Submit"
+```
+
+**Decoration:** `auth_login_decoration.yaml`
+
+```yaml
+type: container
+props:
+  position: form-top
+  layout: vertical
+children:
+  - type: h1
+    props:
+      text: "Welcome Back!"
+  - type: h3
+    props:
+      text: "Please enter your credentials below"
+```
+
+**Result:**
+
+* The main form stays centered.
+* The decoration is automatically placed **above the form** (`form-top`) according to `props.position`.
+
+### Example HTML
+
+```html
+<!--Additional UI from ui_yaml/extra_ui-->
+<h1 class="h1" style="text-align:center; margin-bottom:4px" text="Login">Login</h1>
+<div class="container" style="display:flex; flex-direction:row">
+    <h3 class="h3 gray-text" style="" text="No account?">No account?</h3>
+    <a class="a" href="/auth_register" style="" text="Register">Register</a>
+</div>
+<!--Generated form from ui_yaml-->
+<div class="container" style="display:flex; flex-direction:column">
+    <input class="text-input" data-bind="email" placeholder="email" style="" type="text">
+    <input class="text-input" data-bind="password" placeholder="password" style="" type="password">
+    <button class="button" data-action="submit" data-endpoint="auth.login" style="" text="Submit" type="button">Submit</button>
+</div>
+```
+
+---
+
+### 8.3 Rules for Developers
+
+1. **Prefix match:**
+
+    * The decoration YAML filename must start with the exact main form name.
+    * Add `_decoration` before `.yaml`.
+
+2. **Optional decorations:**
+
+    * If no decoration file exists for a form, the form will still be generated normally.
+    * This allows incremental addition of decorations without breaking site generation.
+
+3. **Positioning:**
+
+    * Each decoration YAML must have `props.position` to define its placement.
+    * Supported positions: `form-top`, `form-bottom`, `form-left`, `form-right`, `page-top-left`, etc.
+
+4. **Multiple decorations:**
+
+    * You can create several decoration files for the same form using distinct suffixes:
+
+      ```
+      auth_login_decoration.yaml
+      auth_login_sidebar.yaml
+      ```
+    * The system merges all decorations **by position** automatically.
+
+---
+
+### 8.4 Implementation Note
+
+* The build script (`build_site()`) scans `frontend/ui_yaml` for main forms and `frontend/ui_yaml/extra_ui` for decorations.
+* Decorations are applied **only if a matching file exists**.
+* Merging respects `props.position`, so the central form is never moved or modified.
+
+---
+
+> This approach ensures that additional UI elements can be added or updated independently of the main form, maintaining a **clean
+separation between form logic and decorative UI**.

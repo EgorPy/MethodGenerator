@@ -10,7 +10,7 @@ It provides a flexible system to attach additional UI elements via YAML while pr
 1. [Project Structure](#project-structure)
 2. [Core Concept](#core-concept)
 3. [Workflow](#workflow)
-4. [UI Decorator (`@ui`) and YAML Elements](#ui-decorator-ui-and-yaml-elements)
+4. [YAML Elements and Decorations](#yaml-elements-and-decorations)
 5. [Process Overview](#process-overview--generation-flow)
 6. [Zones and Layouts](#zones-and-layouts)
 7. [CSS and Styling](#css-and-styling)
@@ -48,7 +48,6 @@ core/
   registry.py
   service_loader.py
   task.py
-  ui_decorator.py
   actions_generation/
     actions_parser.py
     action_model.py
@@ -67,6 +66,7 @@ frontend/
   frontend_main.py
   ui_yaml/
     auth_login.yaml
+    auth_login_decoration.yaml
     auth_register.yaml
     ...
   web/
@@ -81,8 +81,8 @@ frontend/
       ...
 ```
 
-* **backend/**: main backend logic, services, and API endpoints. Every service should provide service.py with FastAPI router
-* **core/**: the engine of MethodGenerator (site building, HTML, YAML generation, actions parsing, UI decorator, runtime config).
+* **backend/**: main backend logic, services, and API endpoints.
+* **core/**: the engine of MethodGenerator (site building, HTML/YAML generation, actions parsing, runtime config).
 * **frontend/**: generated UI YAML, pages, static assets.
 * **RectPacker/**: legacy HTML layout utilities.
 * **tests/**: test scripts for backend, frontend, and runtime.
@@ -93,8 +93,7 @@ frontend/
 
 1. The **central form** is generated automatically from backend API endpoints.
    Each endpoint’s payload fields are converted into form inputs.
-2. Additional UI elements (header, footer, banners, sidebars, text, etc.) can be attached via `@ui(...)` using separate YAML
-   files.
+2. Additional UI elements (headers, footers, banners, sidebars, text, etc.) are provided as **decoration YAML files**.
 3. **The form always stays in the center** of the page; additional elements are rendered around it without breaking its layout.
 4. Runtime logic handles fetching, submission, error handling, and dynamic updates for a fully interactive page.
 
@@ -102,12 +101,10 @@ frontend/
 
 ## Workflow
 
-1. **API Definition**: Define endpoints in FastAPI.
-   Include payload fields and optional redirect behavior.
-   Every API endpoint provides a redirect, by default redirect is set to "self" which is the same page
+1. **API Definition**: Define endpoints in FastAPI. Include payload fields and optional redirect behavior.
 2. **Actions JS Generation**: Use `generate_actions_js.py` to convert backend endpoints into `actions.js`.
 3. **YAML Generation**: `actions_parser.py` converts `actions.js` into base YAML forms for the frontend.
-4. **UI Decoration**: Use `@ui(...)` to attach additional YAML elements.
+4. **Decoration YAMLs**: Place additional YAML files in `frontend/ui_yaml/extra_ui/` or use `_decoration.yaml` suffix.
 5. **Page Generation**: `generate_page_from_ui_tree()` renders HTML pages automatically including CSS files, JS scripts, and UI
    elements.
 6. **Runtime Handling**: `runtime.js` handles:
@@ -119,123 +116,63 @@ frontend/
 
 ---
 
-## UI Decorator (`@ui`) and YAML Elements
+## YAML Elements and Decorations
 
-The `@ui(...)` decorator attaches additional YAML UI elements to endpoints.
+* **Main form YAML**: `<form_name>.yaml` (e.g., `auth_login.yaml`)
+* **Decoration YAML**: `<form_name>_decoration.yaml` or placed in `frontend/ui_yaml/extra_ui/`
+  These files define additional UI elements to render **around or relative to the form**.
 
-```python
-from fastapi import APIRouter
+### Example Main Form
 
-from core.ui_decorator import ui
-
-router = APIRouter()
-
-
-@ui("/static/yaml/header.yaml", "/static/yaml/sidebar.yaml")
-@router.post("/login/")
-async def login():
-    ...
+```yaml
+type: container
+layout: vertical
+children:
+  - type: text_input
+    bind: email
+    props:
+      placeholder: "Email"
+  - type: text_input
+    bind: password
+    props:
+      placeholder: "Password"
+      type: password
+  - type: button
+    action: submit
+    endpoint: auth.login
+    props:
+      text: "Submit"
 ```
 
-* Multiple YAML elements can be attached at once.
-* Each YAML element defines `props.position` and `props.layout` to determine its placement and orientation.
-* The decorator does **not change API logic**, only extends UI around the central form.
-
-**Example YAML element:**
+### Example Decoration
 
 ```yaml
 type: container
 props:
-  position: form-left
+  position: form-top
   layout: vertical
-  style:
-    width: 200px
-    background-color: "#f5f5f5"
 children:
+  - type: h1
+    props:
+      text: "Welcome Back!"
   - type: h3
     props:
-      text: "Menu"
-  - type: button
-    props:
-      text: "Dashboard"
+      text: "Please enter your credentials below"
 ```
+
+* Decorations are automatically merged with the main form **based on filename prefix**.
+* If no decoration exists, the main form is still rendered normally.
+* Decorations must define `props.position` to indicate placement.
+
+---
 
 ## Process Overview / Generation Flow
 
-MethodGenerator is designed to automate the creation of a full-stack web application UI and backend integration from API
-definitions.
-The system handles backend inspection, action extraction, YAML generation, and HTML page creation.
-Here is the flow:
-
-### 1. Core System Startup
-
-- `core/main.py` is the main entry point for the system.
-- On launch, it starts the three main subsystems:
-    - **Backend** (`backend/backend_main.py`) – FastAPI server exposing APIs.
-    - **Frontend** (`frontend/frontend_main.py`) – Serves generated HTML pages and static files.
-    - **Core** (`core/core_main.py`) – Coordinates inspection, YAML generation, and HTML rendering.
-
-The launcher can start services either in separate consoles (Windows) or in the background with `nohup` (Linux).
-
----
-
-### 2. API Inspection & Actions Collection
-
-- Core inspects backend services in `backend/services/` to discover API endpoints.
-- Each endpoint is analyzed to collect:
-    - HTTP method (GET, POST, etc.)
-    - URL path
-    - Payload fields (from parameters or request body)
-- Extracted actions are used to generate a single `actions.js` file, containing all discovered endpoints with metadata.
-- Example of collected action:
-
-```json
-{
-  "auth.login": {
-    "method": "POST",
-    "url": "/login/",
-    "payload": [
-      "email",
-      "password"
-    ]
-  }
-}
-````
-
----
-
-### 3. YAML Generation
-
-* For each action in `actions.js`, a corresponding YAML file is generated in `frontend/ui_yaml/`.
-* The YAML defines the UI form layout for that action (input fields, submit button, etc.).
-* This serves as the main “form” structure for the page.
-* Additional user interface elements (headers, banners, sidebars) can be attached via the `@ui(...)` decorator.
-
----
-
-### 4. HTML Page Generation
-
-* The core renders HTML pages from YAML nodes using `generate_node_html.py`.
-* Each element automatically includes its corresponding CSS file if available.
-* The generated page always keeps the main form at the center.
-* Additional elements can be placed relative to the form or the page without breaking the layout.
-* Output HTML pages are saved to `frontend/web/pages/`.
-
----
-
-### 5. Frontend Routing
-
-* HTML pages are automatically registered as routes by the frontend system.
-* Each page can be accessed via its route, e.g., `/auth_login` serves `auth_login.html`.
-* Static assets (CSS, JS) are served from `frontend/web/static/`.
-
----
-
-### 6. Running the Full System
-
-* Run `core/main.py` to start backend, frontend, and core simultaneously.
-* On Windows, separate consoles open for each subsystem with live output.
-* On Linux, `nohup` launches background processes with `.out` log files.
+1. Load **main YAML forms** from `frontend/ui_yaml/`.
+2. Search for **matching decoration YAMLs** (`*_decoration.yaml`).
+3. Merge decoration elements by `props.position`.
+4. Generate HTML pages in `frontend/web/pages/`.
+5. Serve pages with static CSS and JS.
 
 ---
 
@@ -244,7 +181,6 @@ The launcher can start services either in separate consoles (Windows) or in the 
 * **Form-relative zones**: `form-top`, `form-bottom`, `form-left`, `form-right`
 * **Page-relative zones**: `page-top-left`, `page-top-right`, `page-bottom-left`, `page-bottom-right`
 * Each zone supports multiple elements, horizontally or vertically stacked (`props.layout`).
-* Allows flexible “wrapping” of the central form with instructions, tips, sidebars, or banners.
 
 ---
 
@@ -252,7 +188,7 @@ The launcher can start services either in separate consoles (Windows) or in the 
 
 * Each element type can have a corresponding CSS file (`button.css`, `ui_error_toast.css`, etc.).
 * CSS files are automatically included if present in `frontend/web/static`.
-* Inline styles (`props.style`) and classes (`props.class`) can be used for additional customization.
+* Inline styles (`props.style`) and classes (`props.class`) can be used for customization.
 
 ---
 
@@ -269,8 +205,8 @@ The launcher can start services either in separate consoles (Windows) or in the 
 ## Extending MethodGenerator
 
 1. **Add new YAML elements**: Create a YAML file with `type`, `props`, and `children`.
-2. **Attach with `@ui(...)`**: Any endpoint can include multiple elements.
-3. **Add CSS**: Name your CSS file after the element type and place in `frontend/web/static`.
+2. **Add decoration YAMLs**: Optionally, create `<form_name>_decoration.yaml` to render extra UI around forms.
+3. **Add CSS**: Name your CSS file after the element type and place it in `frontend/web/static`.
 
 ---
 
@@ -278,4 +214,4 @@ The launcher can start services either in separate consoles (Windows) or in the 
 
 * **Legacy tests**: Located in `tests/` and `RectPacker/tests/`.
 * Test API YAML generation, runtime behavior, UI rendering, and HTML output.
-* Example: `ui_runtime_test.py` manually generates actions.js by inspecting FastAPI router.
+* Example: `ui_runtime_test.py` manually generates `actions.js` by inspecting FastAPI router.
