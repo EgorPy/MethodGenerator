@@ -104,7 +104,7 @@ frontend/
 1. **API Definition**: Define endpoints in FastAPI. Include payload fields and optional redirect behavior.
 2. **Actions JS Generation**: Use `generate_actions_js.py` to convert backend endpoints into `actions.js`.
 3. **YAML Generation**: `actions_parser.py` converts `actions.js` into base YAML forms for the frontend.
-4. **Decoration YAMLs**: Place additional YAML files in `frontend/ui_yaml/extra_ui/` or use `_decoration.yaml` suffix.
+4. **Decoration YAMLs**: Place additional YAML files in `frontend/ui_yaml/extra_ui/` and use `_decoration.yaml` suffix.
 5. **Page Generation**: `generate_page_from_ui_tree()` renders HTML pages automatically including CSS files, JS scripts, and UI
    elements.
 6. **Runtime Handling**: `runtime.js` handles:
@@ -119,7 +119,7 @@ frontend/
 ## YAML Elements and Decorations
 
 * **Main form YAML**: `<form_name>.yaml` (e.g., `auth_login.yaml`)
-* **Decoration YAML**: `<form_name>_decoration.yaml` or placed in `frontend/ui_yaml/extra_ui/`
+* **Decoration YAML**: `<form_name>_decoration.yaml` and placed in `frontend/ui_yaml/extra_ui/`
   These files define additional UI elements to render **around or relative to the form**.
 
 ### Example Main Form
