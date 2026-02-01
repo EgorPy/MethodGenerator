@@ -1,6 +1,6 @@
-from core.actions_generation.actions_parser import generate_yaml_from_actions
 from core.actions_generation.generate_actions_js import generate_actions_js
-from core.html_generation.yaml_parser import generate_html_from_yaml
+from core.yaml_generation.generate_yaml import generate_yaml_from_actions
+from core.html_generation.generate_html import generate_html_from_yaml
 from core.registry import get_registered_services
 from core.logger import logger
 

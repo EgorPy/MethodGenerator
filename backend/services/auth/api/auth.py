@@ -11,7 +11,6 @@ from backend.services.auth.logic.auth_logic import AuthLogic
 
 from core.method_generator import AutoDB, ConnectionManager
 from core.redirects import redirect_on_success
-from core.ui_decorator import ui
 from core.config import config
 from core.logger import logger
 
@@ -20,7 +19,6 @@ cm = ConnectionManager()
 
 
 @router.post("/login/", status_code=status.HTTP_200_OK)
-@ui("login_decoration.yaml")
 @redirect_on_success("/profile")
 async def login(
         email: Annotated[str, Form(min_length=5, max_length=256,
