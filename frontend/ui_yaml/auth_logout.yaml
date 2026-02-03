@@ -1,8 +1,0 @@
-type: container
-layout: vertical
-children:
-- type: button
-  action: submit
-  endpoint: auth.logout
-  props:
-    text: Submit

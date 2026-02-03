@@ -1,8 +1,0 @@
-type: container
-layout: vertical
-children:
-- type: button
-  action: submit
-  endpoint: auth.get_me
-  props:
-    text: Submit

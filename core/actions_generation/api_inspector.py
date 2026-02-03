@@ -2,6 +2,7 @@ from .action_model import ActionModel
 from fastapi.routing import APIRoute
 from fastapi import FastAPI, params
 from core.logger import logger
+import inspect
 
 
 def is_form_param(p):
@@ -27,7 +28,16 @@ def inspect_app(app: FastAPI, service_id: str) -> list[ActionModel]:
         func_name = route.endpoint.__name__
         action_id = f"{service_id}.{func_name}"
 
-        payload = [p.name for p in route.dependant.body_params]
+        # print(inspect.signature(route.endpoint))
+        # print(inspect.signature(route.endpoint).parameters)
+        # print(inspect.signature(route.endpoint).parameters.get("data", []))
+        # if hasattr(inspect.signature(route.endpoint).parameters.get("data", []), "annotation"):
+        #     print(inspect.signature(route.endpoint).parameters.get("data", []).annotation.model_fields)
+
+        if hasattr(inspect.signature(route.endpoint).parameters.get("data", []), "annotation"):
+            payload = list(inspect.signature(route.endpoint).parameters.get("data", []).annotation.model_fields.keys())
+        else:
+            payload = []
         encoding = "form" if any(is_form_param(p) for p in route.dependant.body_params) else "json"
 
         redirect_on_success = getattr(route.endpoint, "__redirect_on_success__", "self")

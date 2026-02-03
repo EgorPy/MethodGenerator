@@ -3,10 +3,7 @@ window.ACTIONS = {
         "method": "POST",
         "url": "/login/",
         "serviceId": "auth",
-        "payload": [
-            "email",
-            "password"
-        ],
+        "payload": [],
         "encoding": "form",
         "redirectOnSuccess": "/profile"
     },
@@ -14,13 +11,7 @@ window.ACTIONS = {
         "method": "POST",
         "url": "/register/",
         "serviceId": "auth",
-        "payload": [
-            "first_name",
-            "last_name",
-            "phone",
-            "email",
-            "password"
-        ],
+        "payload": [],
         "encoding": "form",
         "redirectOnSuccess": "self"
     },
@@ -37,6 +28,34 @@ window.ACTIONS = {
         "url": "/me",
         "serviceId": "auth",
         "payload": [],
+        "encoding": "json",
+        "redirectOnSuccess": "self"
+    },
+    "chats.list_chats": {
+        "method": "GET",
+        "url": "/chats/list",
+        "serviceId": "chats",
+        "payload": [],
+        "encoding": "json",
+        "redirectOnSuccess": "self"
+    },
+    "chats.create_chat": {
+        "method": "POST",
+        "url": "/chats/create",
+        "serviceId": "chats",
+        "payload": [
+            "title"
+        ],
+        "encoding": "json",
+        "redirectOnSuccess": "self"
+    },
+    "chats.delete_chat": {
+        "method": "POST",
+        "url": "/chats/delete",
+        "serviceId": "chats",
+        "payload": [
+            "chat_id"
+        ],
         "encoding": "json",
         "redirectOnSuccess": "self"
     }

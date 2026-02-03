@@ -15,7 +15,8 @@ class ActionModel:
             method: str,
             payload: List[str],
             encoding: str = "form",
-            redirect_on_success: str = "self"
+            redirect_on_success: str = "self",
+            pydantic_model=None
     ):
         self.id = id_
         self.service_id = service_id
@@ -24,6 +25,7 @@ class ActionModel:
         self.payload = payload
         self.encoding = encoding
         self.redirect_on_success = redirect_on_success or "self"
+        self.pydantic_model = pydantic_model
 
     def to_dict(self):
         return {

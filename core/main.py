@@ -15,8 +15,8 @@ import os
 PYTHON = sys.executable
 
 core_systems = [
-    "frontend/frontend_main.py",
     "core/core_main.py",
+    "frontend/frontend_main.py",
     "backend/backend_main.py"
 ]
 

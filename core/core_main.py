@@ -24,11 +24,7 @@ async def run():
     logger.info("Config JS generated.")
 
     # 2. Site generation: actions.js -> YAML -> HTML
-    try:
-        build_site()
-    except Exception as e:
-        logger.error(f"Site build failed: {e}")
-        raise e
+    build_site(manual=True)
 
     # 3. Poll services
     await poll_tasks()

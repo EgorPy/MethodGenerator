@@ -4,6 +4,7 @@ from core.config import config
 from core.logger import logger
 
 from backend.services.auth.api.auth import router as auth_router
+from backend.services.chats.service import router as chats_router
 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
@@ -16,6 +17,7 @@ import sys
 app = FastAPI()
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(chats_router)
 
 app.add_middleware(
     CORSMiddleware,

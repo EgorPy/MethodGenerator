@@ -1,0 +1,52 @@
+type: container
+layout: vertical
+gap: 16
+children:
+  - type: h1
+    props:
+      text: Hello, world!
+
+  - type: container
+    layout: vertical
+    gap: 10
+    children:
+      - type: container
+        layout: vertical
+        gap: 10
+        children:
+          - type: container
+            layout: horizontal
+            gap: 10
+            children:
+              - type: text_input
+                bind: title
+                props:
+                  placeholder: Chat title
+
+              - type: button
+                props:
+                  text: Create chat
+                endpoint: chats.create_chat
+
+          - type: container
+            layout: horizontal
+            gap: 10
+            children:
+              - type: text_input
+                bind: chat_id
+                props:
+                  placeholder: Chat ID to delete
+
+              - type: button
+                props:
+                  text: Delete chat
+                endpoint: chats.delete_chat
+
+      - type: h2
+        props:
+          text: Chats
+
+      - type: container
+        layout: vertical
+        endpoint: chats.list_chats
+        action: get

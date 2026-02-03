@@ -54,8 +54,8 @@ def bind_only_for_inputs(node: UINode):
 
 @validator_registry.register
 def action_only_for_buttons(node: UINode):
-    if node.action is not None and node.type_ != ElementType.BUTTON:
-        raise ValidationError(f"'action' can be used only for button, but found {node.type_}")
+    if node.action is not None and node.type_ not in {ElementType.BUTTON, ElementType.CONTAINER}:
+        raise ValidationError(f"'action' can be used only for button or container, but found {node.type_}")
 
 
 @validator_registry.register
