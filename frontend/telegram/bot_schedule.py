@@ -1,10 +1,10 @@
 """ Checks for waiting requests to send them to users """
 
 import asyncio
-from core.method_generator import AutoDB
+from core.method_generator import AutoDB, cm
 from aiogram import Bot
 
-db = AutoDB()
+db = AutoDB(cm)
 
 
 class BotScheduler:

@@ -1,6 +1,7 @@
 """ Authentication, authorization, registration logic """
 
 from backend.services.auth.logic.security import verify_password, hash_password
+from backend.services.auth.schema import Sessions, Users
 
 from core.method_generator import AutoDB
 from core.config import config
@@ -14,15 +15,18 @@ class AuthLogic:
 
         db = AutoDB(connection)
 
-        hashed_password = db.get_password_from_users(email=email)
+        result = db.select_one(Users, email=email)
+        if not result:
+            return None
+        hashed_password = result.get("password")
         if not hashed_password or not verify_password(password, hashed_password):
             return None
 
-        user_id = db.get_id_from_users(email=email)
-        db.delete_session(user_id=user_id)
-        response = db.insert_session(user_id=user_id, duration=config.SESSION_DURATION,
-                                     expires_at=str(datetime.now() + timedelta(seconds=int(config.SESSION_DURATION))))
-        session_id = response[0]["id"]
+        user_id = result.get("id")
+        db.delete(Sessions, user_id=user_id)
+        response = db.insert(Sessions, user_id=user_id, duration=config.SESSION_DURATION,
+                             expires_at=str(datetime.now() + timedelta(seconds=int(config.SESSION_DURATION))))
+        session_id = response.get("id")
 
         return session_id
 
@@ -31,10 +35,12 @@ class AuthLogic:
 
         db = AutoDB(connection)
 
-        if db.is_user_exists(email=email):
+        result = db.select_one(Users, email=email)
+        if not result:
             return None
 
-        db.insert_user(
+        db.insert(
+            Users,
             first_name=first_name,
             last_name=last_name,
             email=email,
@@ -49,4 +55,4 @@ class AuthLogic:
         """ Logout user """
 
         db = AutoDB(connection)
-        db.delete_session(id=session_id)
+        db.delete(Sessions, id=session_id)

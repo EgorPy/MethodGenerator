@@ -14,7 +14,7 @@
         403: "Forbidden",
         404: "Service not found",
         422: "Wrong data format",
-        500: "Internal server error",
+        500: "Service unavailable",
         "default": "Unknown error occured"
     };
 
@@ -43,7 +43,7 @@
 
         const res = await fetch(url, {
             method,
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             credentials: "include",
             body: method !== "GET" ? JSON.stringify(bodyData) : undefined
         });
@@ -78,7 +78,7 @@
             if (!node) return null;
             let el;
 
-            switch(node.type) {
+            switch (node.type) {
                 case "container":
                     el = document.createElement("div");
                     el.style.display = "flex";
@@ -115,7 +115,7 @@
                     if (node.endpoint) {
                         el.addEventListener("click", async () => {
                             // если node.payload есть — используем его
-                            let payload = node.payload ? { ...node.payload } : {};
+                            let payload = node.payload ? {...node.payload} : {};
 
                             // если payload пустой, собираем данные из input с data-bind
                             if (!payload || Object.keys(payload).length === 0) {
@@ -207,5 +207,5 @@
         render();
     });
 
-    window.__UIRUNTIME__ = { STATE, runContainers, runAction };
+    window.__UIRUNTIME__ = {STATE, runContainers, runAction};
 })();

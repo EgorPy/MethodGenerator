@@ -1,0 +1,10 @@
+type: container
+layout: horizontal
+children:
+- type: h2
+  props:
+    text: messenger.chats.chat.title
+- type: button
+  props:
+    text: Delete
+    endpoint: chats.delete

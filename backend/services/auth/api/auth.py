@@ -9,13 +9,12 @@ import sqlite3
 
 from backend.services.auth.logic.auth_logic import AuthLogic
 
-from core.method_generator import AutoDB, ConnectionManager
+from core.method_generator import AutoDB, cm
 from core.redirects import redirect_on_success
 from core.config import config
 from core.logger import logger
 
 router = APIRouter()
-cm = ConnectionManager()
 
 
 @router.post("/login/", status_code=status.HTTP_200_OK)
@@ -86,13 +85,11 @@ async def check_user_session(session_id: Optional[str] = Cookie(None),
                              connection: sqlite3.Connection = Depends(cm.dependency)):
     """ Checks validity of user session """
 
-    db = AutoDB(connection)
+    db = AutoDB(cm)
 
     if not session_id:
         logger.info("No session provided")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No session provided")
-    db.create_table_if_not_exists("sessions")
-    db.create_column_if_not_exists("sessions", "expires_at")
     user_id = db.execute("SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?",
                          (session_id, datetime.utcnow()))
     if not user_id:
@@ -105,13 +102,11 @@ async def check_user_session_for_logout(session_id: Optional[str] = Cookie(None)
                                         connection: sqlite3.Connection = Depends(cm.dependency)):
     """ Checks validity of user session for logout """
 
-    db = AutoDB(connection)
+    db = AutoDB(cm)
 
     if not session_id:
         logger.info("No session provided")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No session provided")
-    db.create_table_if_not_exists("sessions")
-    db.create_column_if_not_exists("sessions", "expires_at")
     user_id = db.execute("SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?",
                          (session_id, datetime.utcnow()))
     if not user_id:
